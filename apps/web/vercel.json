@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/hl/:path*", "destination": "https://api.hyperliquid.xyz/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

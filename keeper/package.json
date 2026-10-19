@@ -1,0 +1,15 @@
+{
+  "name": "shift-keeper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "demo": "tsx src/demo.ts"
+  },
+  "dependencies": {
+    "viem": "^2.38.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}
