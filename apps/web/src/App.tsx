@@ -284,7 +284,7 @@ export function App() {
       : "book";
 
   return (
-    <div className="app">
+    <div className="app desk">
       <header>
         <a className="brand" href="/">
           <Logo />
