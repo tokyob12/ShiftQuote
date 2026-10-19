@@ -8,7 +8,7 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
-import { bookAbi, erc20Abi, positionAbi } from "./abi";
+import { bookAbi, erc20Abi, faucetAbi, positionAbi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Logo } from "./Logo";
@@ -239,7 +239,7 @@ export function App() {
 
   async function write(
     address: Address,
-    abi: typeof positionAbi | typeof bookAbi | typeof erc20Abi,
+    abi: typeof positionAbi | typeof bookAbi | typeof erc20Abi | typeof faucetAbi,
     functionName: string,
     args: readonly unknown[],
   ): Promise<boolean> {
@@ -424,6 +424,21 @@ export function App() {
           </section>
 
           <div className="forms">
+            <section className="card">
+              <h2>Test tokens</h2>
+              <p className="hint">1,000 SDA and 1,000 mUSDC, once an hour. Swap spends mUSDC. Gas is still testnet HYPE.</p>
+              <div className="row">
+                <button
+                  className="primary"
+                  type="button"
+                  disabled={!account}
+                  onClick={() => void write(deployments.faucet, faucetAbi, "drip", [])}
+                >
+                  Get test tokens
+                </button>
+              </div>
+            </section>
+
             <section className="card">
               <h2>Scripted book</h2>
               <div className="fields">

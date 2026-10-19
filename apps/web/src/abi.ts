@@ -92,6 +92,16 @@ export const bookAbi = [
   },
 ] as const;
 
+export const faucetAbi = [
+  {
+    type: "function",
+    name: "drip",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+] as const;
+
 export const erc20Abi = [
   { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
