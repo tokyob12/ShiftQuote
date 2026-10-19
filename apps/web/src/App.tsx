@@ -291,18 +291,17 @@ export function App() {
           <span className="chain">{elysiumTestnet.id}</span>
         </a>
         <p className="sub">One LP position on Elysium testnet.</p>
-        <button className="connect" type="button" onClick={() => void connect()}>
+        <button className={account ? "connect on" : "connect primary"} type="button" onClick={() => void connect()}>
           {account ? short(account) : "Connect wallet"}
         </button>
       </header>
 
       <main>
         {!deployed && <p className="banner">Contracts are not deployed yet. The ETH book below is still live.</p>}
-        {position?.scripted && (
-          <p className="banner">
-            Scripted HyperCore leg. Tokens stay in this contract. This is not an order on HyperCore.
-          </p>
-        )}
+        <p className="banner">
+          <span className="banner-tag">Testnet</span>
+          <span>Scripted HyperCore leg. Tokens stay in this contract. This is not an order on HyperCore.</span>
+        </p>
 
         <div className="layout">
           <section className="card position">
@@ -317,7 +316,7 @@ export function App() {
                     <dt>Last decision</dt>
                     <dd>{DECISIONS[position.lastDecision]}</dd>
                   </div>
-                  <div>
+                  <div className="fact-wide">
                     <dt>Next decision</dt>
                     <dd>{position.preview}</dd>
                   </div>
@@ -340,35 +339,38 @@ export function App() {
                 </dl>
                 <div className="metrics">
                   <div>
-                    <span>Elysium base</span>
-                    <strong>{formatUnits(position.elysiumBase, 18)} SDA</strong>
+                    <span className="metric-label">Elysium base</span>
+                    <strong>{formatUnits(position.elysiumBase, 18)} <span className="unit">SDA</span></strong>
                   </div>
                   <div>
-                    <span>Elysium quote</span>
+                    <span className="metric-label">Elysium quote</span>
                     <strong>
-                      {formatUnits(position.elysiumQuote, 6)} {deployments.quoteSymbol}
-                      {deployments.quoteIsMock ? " (mock)" : ""}
+                      {formatUnits(position.elysiumQuote, 6)}{" "}
+                      <span className="unit">
+                        {deployments.quoteSymbol}
+                        {deployments.quoteIsMock ? " (mock)" : ""}
+                      </span>
                     </strong>
                   </div>
                   <div>
-                    <span>In transit</span>
-                    <strong>{formatUnits(position.transitBase, 18)} SDA</strong>
+                    <span className="metric-label">In transit</span>
+                    <strong>{formatUnits(position.transitBase, 18)} <span className="unit">SDA</span></strong>
                   </div>
                   <div>
-                    <span>Core idle</span>
-                    <strong>{formatUnits(position.coreIdleBase, 18)} SDA</strong>
+                    <span className="metric-label">Core idle</span>
+                    <strong>{formatUnits(position.coreIdleBase, 18)} <span className="unit">SDA</span></strong>
                   </div>
                   <div>
-                    <span>Resting</span>
-                    <strong>{formatUnits(position.restingBase, 18)} SDA</strong>
+                    <span className="metric-label">Resting</span>
+                    <strong>{formatUnits(position.restingBase, 18)} <span className="unit">SDA</span></strong>
                   </div>
                 </div>
                 <p className="hint">Core rows are a scripted ledger. The base token never leaves the contract.</p>
                 <div className="actions">
                   <p className="action-label">Quote</p>
-                  <div className="row primary">
+                  <div className="row quote">
                     <button
-                      className="primary"
+                      className="primary evaluate"
                       type="button"
                       disabled={!account || !canEvaluate}
                       onClick={() => void write(deployments.position, positionAbi, "evaluate", [])}
@@ -501,6 +503,10 @@ export function App() {
             {bookError && <p className="hint">{bookError}</p>}
             {levels && (
               <div className="ladder">
+                <div className="ladder-head">
+                  <span>Price</span>
+                  <span>Size</span>
+                </div>
                 {[...levels.asks].reverse().map((level) => (
                   <div key={`ask-${level.px}`} className="level ask">
                     <span>{level.px}</span>
