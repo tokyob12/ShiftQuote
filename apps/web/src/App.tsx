@@ -11,7 +11,10 @@ import {
 import { bookAbi, erc20Abi, faucetAbi, positionAbi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
+import { Ladder, Route, statusTone, Ticker } from "./DeskParts";
 import { Logo } from "./Logo";
+import { TestnetNote } from "./site";
+import "./desk.css";
 
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const LOCATIONS = ["Uninitialized", "Quoted", "Pulled", "InTransit", "OnCoreIdle", "Resting"] as const;
@@ -278,51 +281,97 @@ export function App() {
     position?.scripted &&
     (position.transitBase > 0n || position.coreIdleBase > 0n || position.restingBase > 0n);
 
-  const spread =
-    levels && levels.asks[0] && levels.bids[0]
-      ? `${levels.bids[0].px} · ${levels.asks[0].px}`
-      : "book";
+  const tone =
+    position?.location === 1
+      ? "quoted"
+      : position?.location === 2
+        ? "pulled"
+        : position && position.location >= 3
+          ? "scripted"
+          : "idle";
+  const nextTone = position ? position.preview.split(" ")[0] : "";
+  const active = (locations: number[]) => (position && locations.includes(position.location) ? ` active ${tone}` : "");
 
   return (
-    <div className="app">
-      <header>
-        <a className="brand" href="/">
+    <div className="desk">
+      <header className="desk-header">
+        <a className="brand" href="/" aria-label="Shift home">
           <Logo />
-          <span className="chain">{elysiumTestnet.id}</span>
         </a>
+        <span className="chain">{elysiumTestnet.id}</span>
         <p className="sub">One LP position on Elysium testnet.</p>
+        <nav className="desk-nav" aria-label="Site">
+          <a href="/docs">Docs</a>
+        </nav>
         <button className={account ? "connect on" : "connect primary"} type="button" onClick={() => void connect()}>
           {account ? short(account) : "Connect wallet"}
         </button>
       </header>
 
       <main>
-        {!deployed && <p className="banner">Contracts are not deployed yet. The ETH book below is still live.</p>}
-        <p className="banner">
-          <span className="banner-tag">Testnet</span>
-          <span>Scripted HyperCore leg. Tokens stay in this contract. This is not an order on HyperCore.</span>
-        </p>
+        {!deployed && <p className="notice">Contracts are not deployed yet. The ETH book below is still live.</p>}
+        <TestnetNote text="Scripted HyperCore leg. Tokens stay in this contract. This is not an order on HyperCore." />
 
         <div className="layout">
-          <section className="card position">
+          <section className={`card position tone-${tone}`}>
             <div className="card-head">
               <h2>Position</h2>
-              {position && <p className={`location ${locationName}`}>{locationName}</p>}
+              {position && (
+                <p key={locationName} className={`location ${locationName}`}>
+                  {locationName}
+                </p>
+              )}
             </div>
             {position ? (
               <>
+                <Route location={position.location} />
+                <div className="metrics">
+                  <div className={`metric${active([1, 2])}`}>
+                    <span className="metric-label">Elysium base</span>
+                    <strong>
+                      <Ticker value={formatUnits(position.elysiumBase, 18)} /> <span className="unit">SDA</span>
+                    </strong>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-label">Elysium quote</span>
+                    <strong>
+                      <Ticker value={formatUnits(position.elysiumQuote, 6)} />{" "}
+                      <span className="unit">
+                        {deployments.quoteSymbol}
+                        {deployments.quoteIsMock ? " (mock)" : ""}
+                      </span>
+                    </strong>
+                  </div>
+                  <div className={`metric${active([3])}`}>
+                    <span className="metric-label">In transit</span>
+                    <strong>
+                      <Ticker value={formatUnits(position.transitBase, 18)} /> <span className="unit">SDA</span>
+                    </strong>
+                  </div>
+                  <div className={`metric${active([4])}`}>
+                    <span className="metric-label">Core idle</span>
+                    <strong>
+                      <Ticker value={formatUnits(position.coreIdleBase, 18)} /> <span className="unit">SDA</span>
+                    </strong>
+                  </div>
+                  <div className={`metric${active([5])}`}>
+                    <span className="metric-label">Resting</span>
+                    <strong>
+                      <Ticker value={formatUnits(position.restingBase, 18)} /> <span className="unit">SDA</span>
+                    </strong>
+                  </div>
+                </div>
+                <p className="hint">Core rows are a scripted ledger. The base token never leaves the contract.</p>
                 <dl className="facts">
                   <div>
                     <dt>Last decision</dt>
-                    <dd>{DECISIONS[position.lastDecision]}</dd>
-                  </div>
-                  <div className="fact-wide">
-                    <dt>Next decision</dt>
-                    <dd>{position.preview}</dd>
+                    <dd className={`decision-word ${DECISIONS[position.lastDecision]}`}>{DECISIONS[position.lastDecision]}</dd>
                   </div>
                   <div>
                     <dt>Quoted mid</dt>
-                    <dd>{formatUnits(position.quotedMidX18, 18)} USDC</dd>
+                    <dd>
+                      <Ticker value={formatUnits(position.quotedMidX18, 18)} /> USDC
+                    </dd>
                   </div>
                   <div>
                     <dt>Band</dt>
@@ -337,124 +386,141 @@ export function App() {
                     <dd>{position.spotLinked ? "Yes" : "No"}</dd>
                   </div>
                 </dl>
-                <div className="metrics">
-                  <div>
-                    <span className="metric-label">Elysium base</span>
-                    <strong>{formatUnits(position.elysiumBase, 18)} <span className="unit">SDA</span></strong>
-                  </div>
-                  <div>
-                    <span className="metric-label">Elysium quote</span>
-                    <strong>
-                      {formatUnits(position.elysiumQuote, 6)}{" "}
-                      <span className="unit">
-                        {deployments.quoteSymbol}
-                        {deployments.quoteIsMock ? " (mock)" : ""}
-                      </span>
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="metric-label">In transit</span>
-                    <strong>{formatUnits(position.transitBase, 18)} <span className="unit">SDA</span></strong>
-                  </div>
-                  <div>
-                    <span className="metric-label">Core idle</span>
-                    <strong>{formatUnits(position.coreIdleBase, 18)} <span className="unit">SDA</span></strong>
-                  </div>
-                  <div>
-                    <span className="metric-label">Resting</span>
-                    <strong>{formatUnits(position.restingBase, 18)} <span className="unit">SDA</span></strong>
-                  </div>
-                </div>
-                <p className="hint">Core rows are a scripted ledger. The base token never leaves the contract.</p>
-                <div className="actions">
-                  <p className="action-label">Quote</p>
-                  <div className="row quote">
-                    <button
-                      className="primary evaluate"
-                      type="button"
-                      disabled={!account || !canEvaluate}
-                      onClick={() => void write(deployments.position, positionAbi, "evaluate", [])}
-                    >
-                      Evaluate
-                    </button>
-                    <label className="swap-size">
-                      Buy base
-                      <input value={swapSize} onChange={(event) => setSwapSize(event.target.value)} />
-                    </label>
-                    <button
-                      className="primary"
-                      type="button"
-                      disabled={!account || position.location !== 1}
-                      onClick={() => void approveAndSwap()}
-                    >
-                      Swap
-                    </button>
-                  </div>
-                  <p className="hint">Swap is rejected while the position is Pulled. Quoted sells base at the quoted mid.</p>
-                  <p className="action-label">Scripted leg</p>
-                  <div className="row secondary">
-                    <button
-                      type="button"
-                      disabled={!isOwner}
-                      onClick={() => void write(deployments.position, positionAbi, "setSpotLinked", [!position.spotLinked])}
-                    >
-                      {position.spotLinked ? "Unlink spot" : "Link spot"}
-                    </button>
-                    <button type="button" disabled={!canShift} onClick={() => void write(deployments.position, positionAbi, "shift", [])}>
-                      Shift 25%
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!canAdvance}
-                      onClick={() => void write(deployments.position, positionAbi, "advanceScripted", [])}
-                    >
-                      Advance scripted leg
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!canReturn}
-                      onClick={() => void write(deployments.position, positionAbi, "returnScripted", [])}
-                    >
-                      Return scripted slice
-                    </button>
-                  </div>
-                </div>
               </>
             ) : (
-              <p className="hint">{deployed ? loadError || "Reading the position…" : "Deploy to show a position."}</p>
+              <p className="hint loading">{deployed ? loadError || "Reading the position…" : "Deploy to show a position."}</p>
             )}
           </section>
 
-          <div className="forms">
-            <section className="card">
-              <h2>Test tokens</h2>
-              <p className="hint">1,000 SDA and 1,000 mUSDC, once an hour. Swap spends mUSDC. Gas is still testnet HYPE.</p>
-              <div className="row">
-                <button
-                  className="primary"
-                  type="button"
-                  disabled={!account}
-                  onClick={() => void write(deployments.faucet, faucetAbi, "drip", [])}
-                >
-                  Get test tokens
-                </button>
-              </div>
-            </section>
+          <section className="card trade">
+            <div className="card-head">
+              <h2>Quote</h2>
+            </div>
+            {position ? (
+              <>
+                <div className="next">
+                  <span className="next-label">Next decision</span>
+                  <span key={position.preview} className={`next-value decision-word ${nextTone}`}>
+                    {position.preview}
+                  </span>
+                </div>
+                <div className="trade-bar">
+                  <button
+                    className="primary evaluate"
+                    type="button"
+                    disabled={!account || !canEvaluate}
+                    onClick={() => void write(deployments.position, positionAbi, "evaluate", [])}
+                  >
+                    Evaluate
+                  </button>
+                  <label className="trade-size">
+                    <span className="trade-label">Buy base</span>
+                    <span className="trade-input">
+                      <input inputMode="decimal" value={swapSize} onChange={(event) => setSwapSize(event.target.value)} />
+                      <span className="trade-unit">SDA</span>
+                    </span>
+                  </label>
+                  <button
+                    className="primary swap"
+                    type="button"
+                    disabled={!account || position.location !== 1}
+                    onClick={() => void approveAndSwap()}
+                  >
+                    Swap
+                  </button>
+                </div>
+                <p className="hint">Swap is rejected while the position is Pulled. Quoted sells base at the quoted mid.</p>
+              </>
+            ) : (
+              <p className="hint loading">{deployed ? loadError || "Reading the position…" : "Deploy to show a position."}</p>
+            )}
+          </section>
 
-            <section className="card">
-              <h2>Scripted book</h2>
+          <section className="card book">
+            <div className="card-head">
+              <h2>Live ETH book</h2>
+              <span className={`live${bookError ? " off" : levels ? " on" : ""}`}>{bookError ? "Offline" : "Live"}</span>
+            </div>
+            <p className="hint">This is the HyperCore ETH book. It is not the demo token&apos;s market.</p>
+            <p className="keeper">{keeperText}</p>
+            {bookError && <p className="hint">{bookError}</p>}
+            {levels && <Ladder asks={levels.asks} bids={levels.bids} />}
+          </section>
+
+          <section className="card tokens">
+            <div className="card-head">
+              <h2>Test tokens</h2>
+            </div>
+            <p className="hint">1,000 SDA and 1,000 mUSDC, once an hour. Swap spends mUSDC. Gas is still testnet HYPE.</p>
+            <div className="row">
+              <button
+                className="primary"
+                type="button"
+                disabled={!account}
+                onClick={() => void write(deployments.faucet, faucetAbi, "drip", [])}
+              >
+                Get test tokens
+              </button>
+            </div>
+          </section>
+
+          <section className="card owner">
+            <div className="card-head">
+              <h2>Owner</h2>
+              <span className={`owner-tag${isOwner ? " on" : ""}`}>{isOwner ? "LP wallet connected" : "LP wallet only"}</span>
+            </div>
+
+            {position && (
+              <div className="owner-block">
+                <p className="block-label">Scripted leg</p>
+                <div className="row secondary">
+                  <button
+                    type="button"
+                    disabled={!isOwner}
+                    onClick={() => void write(deployments.position, positionAbi, "setSpotLinked", [!position.spotLinked])}
+                  >
+                    {position.spotLinked ? "Unlink spot" : "Link spot"}
+                  </button>
+                  <button
+                    className="shift-action"
+                    type="button"
+                    disabled={!canShift}
+                    onClick={() => void write(deployments.position, positionAbi, "shift", [])}
+                  >
+                    Shift 25%
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canAdvance}
+                    onClick={() => void write(deployments.position, positionAbi, "advanceScripted", [])}
+                  >
+                    Advance scripted leg
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canReturn}
+                    onClick={() => void write(deployments.position, positionAbi, "returnScripted", [])}
+                  >
+                    Return scripted slice
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="owner-block">
+              <p className="block-label">Scripted book</p>
               <div className="fields">
                 <label>
                   Bid, USDC
-                  <input value={bid} onChange={(event) => setBid(event.target.value)} />
+                  <input inputMode="decimal" value={bid} onChange={(event) => setBid(event.target.value)} />
                 </label>
                 <label>
                   Ask, USDC
-                  <input value={ask} onChange={(event) => setAsk(event.target.value)} />
+                  <input inputMode="decimal" value={ask} onChange={(event) => setAsk(event.target.value)} />
                 </label>
                 <label>
                   Slippage, bps
-                  <input value={slippage} onChange={(event) => setSlippage(event.target.value)} />
+                  <input inputMode="numeric" value={slippage} onChange={(event) => setSlippage(event.target.value)} />
                 </label>
               </div>
               <div className="row">
@@ -474,18 +540,18 @@ export function App() {
                   Set scripted book
                 </button>
               </div>
-            </section>
+            </div>
 
-            <section className="card">
-              <h2>Deposit</h2>
+            <div className="owner-block">
+              <p className="block-label">Deposit</p>
               <div className="fields">
                 <label>
                   Base, SDA
-                  <input value={baseIn} onChange={(event) => setBaseIn(event.target.value)} />
+                  <input inputMode="decimal" value={baseIn} onChange={(event) => setBaseIn(event.target.value)} />
                 </label>
                 <label>
                   Quote, {deployments.quoteSymbol}
-                  <input value={quoteIn} onChange={(event) => setQuoteIn(event.target.value)} />
+                  <input inputMode="decimal" value={quoteIn} onChange={(event) => setQuoteIn(event.target.value)} />
                 </label>
               </div>
               <div className="row">
@@ -493,39 +559,11 @@ export function App() {
                   Approve and deposit
                 </button>
               </div>
-            </section>
-          </div>
-
-          <section className="card book">
-            <h2>Live ETH book</h2>
-            <p className="hint">This is the HyperCore ETH book. It is not the demo token&apos;s market.</p>
-            <p className="keeper">{keeperText}</p>
-            {bookError && <p className="hint">{bookError}</p>}
-            {levels && (
-              <div className="ladder">
-                <div className="ladder-head">
-                  <span>Price</span>
-                  <span>Size</span>
-                </div>
-                {[...levels.asks].reverse().map((level) => (
-                  <div key={`ask-${level.px}`} className="level ask">
-                    <span>{level.px}</span>
-                    <span>{level.sz}</span>
-                  </div>
-                ))}
-                <div className="spread">{spread}</div>
-                {levels.bids.map((level) => (
-                  <div key={`bid-${level.px}`} className="level bid">
-                    <span>{level.px}</span>
-                    <span>{level.sz}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </section>
         </div>
       </main>
-      <p className={`status${status ? " on" : ""}`} role="status">
+      <p className={`status${status ? ` on ${statusTone(status)}` : ""}`} role="status">
         {status}
       </p>
     </div>

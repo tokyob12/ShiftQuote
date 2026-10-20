@@ -31,10 +31,10 @@ function Home() {
       <p className="eyebrow">Introduction</p>
       <h1>One LP. One position.</h1>
       <p>
-        Shift keeps an Elysium quote from becoming the stale side of a HyperCore book. The position reads a book snapshot and chooses Stay, Pull, or Shift.
+        Shift keeps an Elysium quote from becoming the stale side of a HyperCore book. The position reads a book snapshot and chooses Stay or Pull. Shift is a separate owner call.
       </p>
       <p>
-        <a className="desk-link primary" href="/app">
+        <a className="btn primary" href="/desk">
           Open the desk
         </a>
       </p>
@@ -47,8 +47,8 @@ function Home() {
         <li>Stay and Pull update the quote. They do not move tokens off Elysium.</li>
         <li>Shift, Advance, and Return run only while the attached reader is the scripted book. The moved base stays inside the position contract.</li>
       </ul>
-      <p className="banner">
-        <span className="banner-tag">Testnet</span>
+      <p className="testnet">
+        <span className="testnet-tag">Testnet</span>
         <span>
           The HyperCore leg is scripted. Tokens stay in the contract. This is not an order on HyperCore. The quote in the demo is mUSDC, a mock.
         </span>
