@@ -1,3 +1,4 @@
+import { SiteFooter, SiteNav } from "./Docs";
 import { Logo } from "./Logo";
 
 const decisions = [
@@ -22,6 +23,7 @@ export function Landing() {
         <a className="brand" href="/">
           <Logo />
         </a>
+        <SiteNav />
         <a className="desk-link" href="/app">
           Open the desk
         </a>
@@ -81,6 +83,7 @@ export function Landing() {
           </a>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
