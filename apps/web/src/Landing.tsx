@@ -107,7 +107,7 @@ export function Landing() {
               <DecisionCard key={decision.name} name={decision.name} copy={decision.copy} index={index} />
             ))}
           </div>
-          <TestnetNote />
+          <TestnetNote text="The desk keeps the submitted position on a scripted book, and a second position that marks WHYPE against the live HYPE book. Both legs stay in the contract. This is not an order on HyperCore." />
         </section>
 
         <section className="closing">

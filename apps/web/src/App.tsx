@@ -12,6 +12,7 @@ import { bookAbi, erc20Abi, faucetAbi, positionAbi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Ladder, Route, statusTone, Ticker } from "./DeskParts";
+import { LivePosition } from "./LivePosition";
 import { Logo } from "./Logo";
 import { TestnetNote } from "./site";
 import "./desk.css";
@@ -299,7 +300,7 @@ export function App() {
           <Logo />
         </a>
         <span className="chain">{elysiumTestnet.id}</span>
-        <p className="sub">One LP position on Elysium testnet.</p>
+        <p className="sub">Submitted position and a live WHYPE quote.</p>
         <nav className="desk-nav" aria-label="Site">
           <a href="/docs">Docs</a>
         </nav>
@@ -310,8 +311,12 @@ export function App() {
 
       <main>
         {!deployed && <p className="notice">Contracts are not deployed yet. The ETH book below is still live.</p>}
-        <TestnetNote text="Scripted HyperCore leg. Tokens stay in this contract. This is not an order on HyperCore." />
+        <TestnetNote text="Two positions. The submitted one reads a scripted book. The live one marks WHYPE against the HYPE book. Both legs stay in the contract. This is not an order on HyperCore." />
 
+        <h2 className="desk-section">Live</h2>
+        <LivePosition account={account} onStatus={setStatus} />
+
+        <h2 className="desk-section">Submitted</h2>
         <div className="layout">
           <section className={`card position tone-${tone}`}>
             <div className="card-head">

@@ -405,6 +405,10 @@ function Testnet() {
         <li>Evaluate, then Swap. Swap spends mUSDC and buys SDA at the quoted mid.</li>
       </ol>
       <p>Deposit, Set scripted book, Link spot, Shift, Advance, and Return stay on the LP wallet. Another wallet can read the position and, once it holds mUSDC, Swap while the position is Quoted.</p>
+      <h2>The live position</h2>
+      <p>
+        The same desk also shows a second position. Its base is canonical WHYPE. A keeper posts the HyperCore HYPE/USDC book, coin @107. Swap on that position reads the snapshot in the same transaction. The quote is still mUSDC. The slice stays in the contract. This is not an order on HyperCore. If the keeper is not posting, the snapshot is stale and the swap reverts.
+      </p>
     </>
   );
 }

@@ -35,12 +35,23 @@ type BookResponse = {
   levels: [Level[], Level[]];
 };
 
+const evaluateAbi = [
+  {
+    type: "function",
+    name: "evaluate",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+  },
+] as const;
+
 /** One HyperCore book posted into one KeeperBook. */
 type Feed = {
   label: string;
   coin: string;
   book: Address | null;
   size: bigint;
+  position: Address | null;
 };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -58,7 +69,11 @@ function loadAddress(): Address | null {
 function loadSpotFeed(): Feed | null {
   const file = resolve(root, "deployments/v2.json");
   if (!existsSync(file)) return null;
-  const v2 = JSON.parse(readFileSync(file, "utf8")) as { spotKeeperBook?: Address; spotCoin?: string };
+  const v2 = JSON.parse(readFileSync(file, "utf8")) as {
+    spotKeeperBook?: Address;
+    spotCoin?: string;
+    positionV2?: Address;
+  };
   if (!v2.spotKeeperBook) return null;
   const sizeTokens = BigInt(process.env.SHIFT_SPOT_SIZE ?? "10");
   return {
@@ -66,6 +81,7 @@ function loadSpotFeed(): Feed | null {
     coin: v2.spotCoin ?? "@107",
     book: v2.spotKeeperBook,
     size: sizeTokens * ONE,
+    position: v2.positionV2 ?? null,
   };
 }
 
@@ -87,7 +103,9 @@ async function main() {
   const feeds: Feed[] = [];
   const spot = loadSpotFeed();
   if (spot) feeds.push(spot);
-  if (process.env.SHIFT_POST_ETH) feeds.push({ label: "ETH perp", coin: "ETH", book: loadAddress(), size: ONE });
+  if (process.env.SHIFT_POST_ETH) {
+    feeds.push({ label: "ETH perp", coin: "ETH", book: loadAddress(), size: ONE, position: null });
+  }
   if (feeds.length === 0) {
     console.log("nothing to post: deploy v2 to write deployments/v2.json, or set SHIFT_POST_ETH");
     return;
@@ -124,6 +142,15 @@ async function main() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       console.log(`posted ${feed.label} ${hash}`);
+      if (feed.position) {
+        const decision = await wallet.writeContract({
+          address: feed.position,
+          abi: evaluateAbi,
+          functionName: "evaluate",
+        });
+        await publicClient.waitForTransactionReceipt({ hash: decision });
+        console.log(`evaluated ${feed.label} ${decision}`);
+      }
     }
   };
 

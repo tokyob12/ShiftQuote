@@ -53,6 +53,38 @@ export const positionAbi = [
   },
 ] as const;
 
+export const positionV2Abi = [
+  ...positionAbi.filter((item) => item.type !== "function" || item.name !== "swap"),
+  { type: "function", name: "swapsOpen", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
+  {
+    type: "function",
+    name: "setSwapsOpen",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "open", type: "bool" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "withdraw",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "baseAmount", type: "uint256" },
+      { name: "quoteAmount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "swap",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "baseOut", type: "uint256" },
+      { name: "maxUsdcIn", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
+] as const;
+
 export const bookAbi = [
   { type: "function", name: "isScripted", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "bidX18", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },

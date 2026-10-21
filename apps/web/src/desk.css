@@ -93,6 +93,24 @@
 
 /* Cards */
 
+.desk-section {
+  margin: var(--s6) 0 var(--s3);
+  color: var(--ink-3);
+  font-size: var(--fs-11);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.live-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s4);
+  align-items: start;
+  min-width: 0;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -783,6 +801,8 @@
 }
 
 @media (min-width: 1100px) {
+  .live-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr); }
+
   .layout {
     grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr) minmax(0, 0.92fr);
     grid-template-rows: auto auto 1fr;
