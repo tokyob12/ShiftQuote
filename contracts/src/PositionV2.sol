@@ -14,6 +14,8 @@ import {IHyperCoreBook} from "./IHyperCoreBook.sol";
 ///           this contract, and no call reaches HyperCore.
 ///         - Swaps start closed and the owner opens or closes them.
 ///         - The owner can withdraw the Elysium balances while Quoted or Pulled.
+///         - The owner can requote a Pulled position at the fresh book mid, so a
+///           book that moved and stayed away does not freeze the quote.
 ///         The submitted Position stays deployed and unchanged.
 contract PositionV2 {
     enum Location {
@@ -77,6 +79,7 @@ contract PositionV2 {
     event SpotLinkSet(bool linked);
     event SwapsOpenSet(bool open);
     event Withdrawn(uint256 baseAmount, uint256 quoteAmount);
+    event Requoted(uint256 previousMidX18, uint256 midX18);
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -146,6 +149,24 @@ contract PositionV2 {
     function evaluate() external returns (Decision decision) {
         if (location != Location.Quoted && location != Location.Pulled) revert BadLocation();
         (decision,) = _evaluate();
+    }
+
+    /// @notice Owner only. Moves a Pulled position back to Quoted at the mid of a
+    ///         fresh read. Pull leaves the mid where it was, so once the book
+    ///         settles more than 50 bps away, evaluate keeps answering Pull. This
+    ///         is the explicit way out. It reverts unless the location is Pulled,
+    ///         and when snapshot slippage is above 50 bps. A stale read reverts.
+    function requote() external onlyOwner returns (uint256 midX18) {
+        if (location != Location.Pulled) revert BadLocation();
+        IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+        if (snap.midX18 == 0) revert ZeroAmount();
+        if (snap.slippageBps > BAND_BPS) revert Slippage();
+        uint256 previous = quotedMidX18;
+        midX18 = snap.midX18;
+        quotedMidX18 = midX18;
+        location = Location.Quoted;
+        lastDecision = Decision.Stay;
+        emit Requoted(previous, midX18);
     }
 
     /// @notice What `evaluate` would do. Reverts on a stale keeper snapshot.

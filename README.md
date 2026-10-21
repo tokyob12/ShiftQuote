@@ -57,6 +57,9 @@ The position was deposited with 1,000 SDA and 1,000 mUSDC and started Quoted at 
 - `shift`, `advanceScripted`, and `returnScripted` run on the live reader. The leg is still a ledger inside the contract. The tokens stay in the contract. This is not an order on HyperCore.
 - Swaps start closed. The owner opens and closes them with `setSwapsOpen`. Evaluate, preview, and the Shift legs run either way.
 - The owner can `withdraw` from the Elysium base and quote while Quoted or Pulled. The transit, core idle, and resting balances are never touched.
+- `requote` (owner only, from Pulled) moves the quote back to the mid of a fresh read. Pull keeps the old mid, so once the book settles more than 50 bps away, evaluate keeps answering Pull. Requote is the explicit way out. It reverts on a stale read or above 50 bps slippage. This needs a new deployment: the PositionV2 already on testnet does not have it.
+
+On the PositionV2 at `0x46093Bb711fD739386D24DE2172a59606040aEd7`, a stale quoted mid was walked from 78.58 to 81.83 on 21 October 2026, around 07:55 UTC. Swaps were closed from block 12681625 to 12681947, so nothing traded during the walk. Nine snapshots were posted by hand, starting at block 12681647. Each had the bid equal to the ask, 40 bps above the last, and those prices did not come from HyperCore. The tenth posted the live book once the gap was inside 50 bps, and evaluate in block 12681931 stored 81.8335. `requote` replaces that procedure.
 
 ```bash
 SHIFT_PRIVATE_KEY=0x... forge script contracts/script/DeployV2.s.sol --rpc-url https://testnet-rpc.elysium.kinetiq.xyz --broadcast

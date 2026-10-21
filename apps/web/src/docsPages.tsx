@@ -370,6 +370,13 @@ function Books() {
       <p>
         isScripted returns false. A keeper posts a snapshot. read reverts with Stale when the post is older than 15 seconds, or when the bid is still zero. If this reader were attached, shift, advanceScripted, and returnScripted would revert with NotScripted. Stay and Pull would still run, and a stale post would revert preview and evaluate.
       </p>
+      <h2>Spot book for the second position</h2>
+      <p>
+        A second KeeperBook holds the HyperCore HYPE/USDC spot book, coin @107, for the WHYPE position. The keeper posts it every 5 seconds from the public API.
+      </p>
+      <p>
+        One exception is on record. On 21 October 2026, around 07:55 UTC, a stale quoted mid was walked from 78.58 to 81.83. Swaps were closed for the whole window, from block 12681625 to 12681947, so nothing traded during it. Nine snapshots were posted by hand, starting at block 12681647. Each had the bid equal to the ask, 40 bps above the last, and those prices did not come from HyperCore. The tenth posted the live book once the gap was inside 50 bps, and evaluate in block 12681931 stored 81.8335. A later deployment adds an owner requote, so the mid can be reset from a fresh read instead.
+      </p>
       <h2>The ETH ladder on the desk</h2>
       <p>
         The desk also draws the live HyperCore ETH book from the public API. That ladder is a reference. It is not SDA's market, and the position does not read it when it decides.

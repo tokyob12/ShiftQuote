@@ -337,4 +337,81 @@ contract PositionV2Test is Test {
         assertEq(position.coreIdleBase(), 0);
         assertEq(position.restingBase(), 0);
     }
+
+    function _pullAt(uint256 mid) internal {
+        _post(mid, 10);
+        vm.prank(stranger);
+        position.evaluate();
+        assertEq(uint256(position.location()), uint256(PositionV2.Location.Pulled));
+    }
+
+    function testRequoteMovesPulledPositionToFreshMid() public {
+        uint256 away = MID + MID * 400 / 10_000;
+        _pullAt(away);
+
+        vm.prank(stranger);
+        assertEq(uint256(position.evaluate()), uint256(PositionV2.Decision.Pull));
+
+        vm.expectEmit(false, false, false, true, address(position));
+        emit PositionV2.Requoted(MID, away);
+        vm.prank(lp);
+        uint256 mid = position.requote();
+
+        assertEq(mid, away);
+        assertEq(position.quotedMidX18(), away);
+        assertEq(uint256(position.location()), uint256(PositionV2.Location.Quoted));
+        assertEq(uint256(position.lastDecision()), uint256(PositionV2.Decision.Stay));
+        assertEq(position.elysiumBase(), 100 * WAD);
+    }
+
+    function testSwapWorksAfterRequote() public {
+        uint256 away = MID + MID * 400 / 10_000;
+        _pullAt(away);
+        vm.prank(lp);
+        position.requote();
+
+        vm.prank(buyer);
+        assertTrue(position.swap(1 * WAD, type(uint256).max));
+        assertEq(usdc.balanceOf(buyer), 10_000 * USDC - away / 1e12);
+    }
+
+    function testRequoteOnlyOwner() public {
+        _pullAt(MID + MID * 400 / 10_000);
+
+        vm.prank(stranger);
+        vm.expectRevert(PositionV2.NotOwner.selector);
+        position.requote();
+    }
+
+    function testRequoteOnlyFromPulled() public {
+        vm.prank(lp);
+        vm.expectRevert(PositionV2.BadLocation.selector);
+        position.requote();
+
+        vm.startPrank(lp);
+        position.setSpotLinked(true);
+        position.shift();
+        vm.expectRevert(PositionV2.BadLocation.selector);
+        position.requote();
+        vm.stopPrank();
+    }
+
+    function testRequoteRefusesHighSlippage() public {
+        _pullAt(MID + MID * 400 / 10_000);
+        _post(MID + MID * 400 / 10_000, 51);
+
+        vm.prank(lp);
+        vm.expectRevert(PositionV2.Slippage.selector);
+        position.requote();
+        assertEq(uint256(position.location()), uint256(PositionV2.Location.Pulled));
+    }
+
+    function testRequoteRefusesStaleBook() public {
+        _pullAt(MID + MID * 400 / 10_000);
+        vm.warp(block.timestamp + 16);
+
+        vm.prank(lp);
+        vm.expectRevert(KeeperBook.Stale.selector);
+        position.requote();
+    }
 }

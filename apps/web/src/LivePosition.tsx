@@ -334,6 +334,11 @@ export function LivePosition({
                   >
                     Return
                   </button>
+                  {deployments.v2.hasRequote && (
+                    <button type="button" disabled={view.location !== 2} onClick={() => void write("requote", [])}>
+                      Requote at book
+                    </button>
+                  )}
                 </div>
                 <div className="fields">
                   <label>

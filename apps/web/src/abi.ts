@@ -63,6 +63,7 @@ export const positionV2Abi = [
     inputs: [{ name: "open", type: "bool" }],
     outputs: [],
   },
+  { type: "function", name: "requote", stateMutability: "nonpayable", inputs: [], outputs: [{ type: "uint256" }] },
   {
     type: "function",
     name: "withdraw",

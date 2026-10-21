@@ -14,5 +14,6 @@ export const deployments = {
     base: "0xCD57F65c2B0e5881CFC2E609F7CD53b746E1F234",
     baseSymbol: "WHYPE",
     spotCoin: "@107",
+    hasRequote: false,
   },
 } as const;

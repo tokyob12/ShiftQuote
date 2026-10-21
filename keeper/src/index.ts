@@ -35,7 +35,7 @@ type BookResponse = {
   levels: [Level[], Level[]];
 };
 
-const evaluateAbi = [
+const positionAbi = [
   {
     type: "function",
     name: "evaluate",
@@ -43,7 +43,18 @@ const evaluateAbi = [
     inputs: [],
     outputs: [{ type: "uint8" }],
   },
+  { type: "function", name: "location", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+  { type: "function", name: "quotedMidX18", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
 ] as const;
+
+const QUOTED = 1;
+const PULLED = 2;
+const BAND_BPS = 50n;
+// Evaluate a Quoted position once the book has drifted this far from its mid.
+const EVALUATE_BPS = BigInt(process.env.SHIFT_EVALUATE_BPS ?? "10");
+// Warn when the signer's gas balance drops below this, in HYPE wei.
+const LOW_GAS_WEI = 5n * 10n ** 16n;
+const GAS_CHECK_EVERY = 60;
 
 /** One HyperCore book posted into one KeeperBook. */
 type Feed = {
@@ -125,6 +136,30 @@ async function main() {
   }
   console.log(`signer ${account?.address ?? "dry run"}`);
 
+  // Each evaluate costs about as much gas as a post. Skip it when it would change nothing:
+  // a Quoted mid still close to the book, or a Pulled mid the book has not come back to.
+  const shouldEvaluate = async (position: Address, bookMid: bigint, slippageBps: bigint) => {
+    const [location, quotedMid] = await Promise.all([
+      publicClient.readContract({ address: position, abi: positionAbi, functionName: "location" }),
+      publicClient.readContract({ address: position, abi: positionAbi, functionName: "quotedMidX18" }),
+    ]);
+    if (quotedMid === 0n) return false;
+    const gap = bookMid > quotedMid ? bookMid - quotedMid : quotedMid - bookMid;
+    const driftBps = (gap * 10_000n) / quotedMid;
+    if (location === QUOTED) return driftBps >= EVALUATE_BPS || slippageBps > BAND_BPS;
+    if (location === PULLED) return driftBps <= BAND_BPS && slippageBps <= BAND_BPS;
+    return false;
+  };
+
+  let ticks = 0;
+  const checkGas = async () => {
+    if (!account || ticks++ % GAS_CHECK_EVERY !== 0) return;
+    const balance = await publicClient.getBalance({ address: account.address });
+    const hype = Number(balance) / 1e18;
+    if (balance < LOW_GAS_WEI) console.warn(`low gas: signer holds ${hype.toFixed(4)} HYPE, top up from the faucet`);
+    else console.log(`signer holds ${hype.toFixed(4)} HYPE`);
+  };
+
   // Feeds post one after another from the same signer, so nonces never collide.
   const post = async (feed: Feed) => {
     const book = await fetchBook(feed.coin);
@@ -142,10 +177,10 @@ async function main() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       console.log(`posted ${feed.label} ${hash}`);
-      if (feed.position) {
+      if (feed.position && (await shouldEvaluate(feed.position, quote.midX18, quote.slippageBps))) {
         const decision = await wallet.writeContract({
           address: feed.position,
-          abi: evaluateAbi,
+          abi: positionAbi,
           functionName: "evaluate",
         });
         await publicClient.waitForTransactionReceipt({ hash: decision });
@@ -158,6 +193,11 @@ async function main() {
   const tick = async () => {
     if (busy) return;
     busy = true;
+    try {
+      await checkGas();
+    } catch (error) {
+      console.error(`gas check: ${error instanceof Error ? error.message : error}`);
+    }
     for (const feed of feeds) {
       try {
         await post(feed);

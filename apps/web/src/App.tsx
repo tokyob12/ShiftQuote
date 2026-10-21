@@ -311,7 +311,7 @@ export function App() {
 
       <main>
         {!deployed && <p className="notice">Contracts are not deployed yet. The ETH book below is still live.</p>}
-        <TestnetNote text="Two positions. The submitted one reads a scripted book. The live one marks WHYPE against the HYPE book. Both legs stay in the contract. This is not an order on HyperCore." />
+        <TestnetNote text="Two positions. The submitted one reads a scripted book. The live one marks WHYPE against the HYPE book. On both, the HyperCore leg is scripted. Tokens stay in the contract. This is not an order on HyperCore." />
 
         <h2 className="desk-section">Live</h2>
         <LivePosition account={account} onStatus={setStatus} />
