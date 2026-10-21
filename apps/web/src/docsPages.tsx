@@ -127,7 +127,9 @@ function Faq() {
       <h2>Does the ETH ladder on the desk drive Stay and Pull?</h2>
       <p>No. That ladder is a live HyperCore ETH reference. The position reads the attached book, which on this deployment is the scripted book.</p>
       <h2>Does Shift have a token?</h2>
-      <p>No. SDA and mUSDC are test inventory for the desk.</p>
+      <p>
+        Not today, and the product does not need one. A token may come later, after Shift is live on Elysium mainnet and LPs are using it, to govern the decisions shared across many positions: the protocol fee, the default band, and which book readers and keepers a position may use. It would be announced publicly before any launch. SDA and mUSDC are test inventory for the desk.
+      </p>
     </>
   );
 }
@@ -436,8 +438,12 @@ function Roadmap() {
         <li>An order on HyperCore.</li>
         <li>A shared inventory pool.</li>
         <li>A perp.</li>
-        <li>A Shift token. There is no plan to issue one.</li>
+        <li>A Shift token. There is none today.</li>
       </ul>
+      <h2>Later: a governance token</h2>
+      <p>
+        After mainnet, once LPs are using Shift, a token may govern the decisions shared across positions: the protocol fee, the default band, and which book readers and keepers are allowed. Nothing above depends on it. Timing depends on adoption, and it will be announced publicly first.
+      </p>
       <p>Until the write path from Elysium to that LP's HyperCore account exists, the HyperCore leg stays scripted and the desk keeps the testnet line on screen.</p>
     </>
   );
