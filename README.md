@@ -46,3 +46,22 @@ Testnet deploy from `0x1329818d4a89a1ea42e9F78c84009A79b8F269f2`:
 - Position: `0x8e3dfb663603D5D21Bfd1BfE1BD470Da2b396815`
 
 The position was deposited with 1,000 SDA and 1,000 mUSDC and started Quoted at 1 USDC. The HyperCore leg is scripted. Canonical testnet USDC was not used because this deployer held none.
+
+## Second position (not deployed yet)
+
+`PositionV2` sits next to the submitted position. It does not replace it, and the site still reads the first one.
+
+- Base is canonical WHYPE (`0xCD57F65c2B0e5881CFC2E609F7CD53b746E1F234`). Quote is the same mUSDC.
+- The reader is a new `KeeperBook` that the keeper fills from HyperCore spot `@107` (HYPE/USDC), priced from the Hyperliquid mainnet book.
+- `swap(baseOut, maxUsdcIn)` evaluates a fresh read first. Inside the band it moves the quote to that mid and sells. Outside the band, or above 50 bps slippage, the call reverts and the location stays as it was. `evaluate` is what records Pull. A stale snapshot reverts.
+- `shift`, `advanceScripted`, and `returnScripted` run on the live reader. The leg is still a ledger inside the contract. The tokens stay in the contract. This is not an order on HyperCore.
+- Swaps start closed. The owner opens and closes them with `setSwapsOpen`. Evaluate, preview, and the Shift legs run either way.
+- The owner can `withdraw` from the Elysium base and quote while Quoted or Pulled. The transit, core idle, and resting balances are never touched.
+
+```bash
+SHIFT_PRIVATE_KEY=0x... forge script contracts/script/DeployV2.s.sol --rpc-url https://testnet-rpc.elysium.kinetiq.xyz --broadcast
+cd keeper && SHIFT_PRIVATE_KEY=0x... npm start
+SHIFT_PRIVATE_KEY=0x... SHIFT_V2_BASE=5000000000000000000 forge script contracts/script/SeedV2.s.sol --rpc-url https://testnet-rpc.elysium.kinetiq.xyz --broadcast
+```
+
+The deploy writes `deployments/v2.json`, not `apps/web/src/deployments.ts`. Once that file exists, the keeper posts the `@107` book. It posts the ETH book too only when `SHIFT_POST_ETH` is set. `SHIFT_SPOT_SIZE` sets the HYPE size used for the slippage walk (default 10). SeedV2 reads the spot snapshot before any transaction and stops if there is none or it is older than 15 seconds. After seeding, open swaps with `setSwapsOpen(true)`.
