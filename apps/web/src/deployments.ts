@@ -9,11 +9,11 @@ export const deployments = {
   position: "0x8e3dfb663603D5D21Bfd1BfE1BD470Da2b396815",
   faucet: "0x7E5B845DE6D74123cC0C2Bf36Aa3440f110C0A85",
   v2: {
-    position: "0x46093Bb711fD739386D24DE2172a59606040aEd7",
-    keeperBook: "0x96440aA2511Dc4457b9bbb1508F935cE40220Fc5",
+    position: "0xf124eC140c4762dD31CE42268f30cd463eDa0e06",
+    keeperBook: "0xD9c81A8c02084C31ED5939b398457f127C7Fa496",
     base: "0xCD57F65c2B0e5881CFC2E609F7CD53b746E1F234",
     baseSymbol: "WHYPE",
     spotCoin: "@107",
-    hasRequote: false,
+    hasRequote: true,
   },
 } as const;

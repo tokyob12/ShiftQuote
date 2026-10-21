@@ -8,13 +8,15 @@ import {PositionV2} from "../src/PositionV2.sol";
 interface IWHYPE {
     function deposit() external payable;
     function approve(address spender, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
 }
 
-/// @notice Wraps testnet HYPE into WHYPE and makes the first deposit into the
-///         second position. The first deposit reads the spot book, so the
-///         script reads the KeeperBook snapshot before any transaction and
-///         stops if there is none or it is older than 15 seconds. The deposit
-///         is base only. Buyers pay in mUSDC from the faucet.
+/// @notice Deposits base into the second position. WHYPE the deployer already
+///         holds is used first, and only the shortfall is wrapped from native
+///         HYPE. The first deposit reads the spot book, so the script reads the
+///         KeeperBook snapshot before any transaction and stops if there is
+///         none or it is older than 15 seconds. The deposit is base only.
+///         Buyers pay in mUSDC from the faucet.
 contract SeedV2 is Script {
     uint256 internal constant FRESHNESS_SECONDS = 15;
 
@@ -23,19 +25,30 @@ contract SeedV2 is Script {
         uint256 amount = vm.envOr("SHIFT_V2_BASE", uint256(5 ether));
         string memory json = vm.readFile("deployments/v2.json");
         PositionV2 position = PositionV2(vm.parseJsonAddress(json, ".positionV2"));
-        IWHYPE whype = IWHYPE(position.base());
 
-        _requireFreshSnapshot(position.reader(), amount);
-
-        vm.startBroadcast(key);
-        whype.deposit{value: amount}();
-        whype.approve(address(position), amount);
-        position.deposit(amount, 0);
-        vm.stopBroadcast();
+        uint256 wrapped = seed(position, key, amount);
 
         console.log("positionV2", address(position));
         console.log("deposited WHYPE wei", amount);
+        console.log("wrapped from native HYPE wei", wrapped);
         console.log("quotedMidX18", position.quotedMidX18());
+    }
+
+    /// @return wrapped Native HYPE wrapped to cover what the deployer's WHYPE balance lacked.
+    function seed(PositionV2 position, uint256 key, uint256 amount) public returns (uint256 wrapped) {
+        IWHYPE whype = IWHYPE(position.base());
+        address deployer = vm.addr(key);
+
+        _requireFreshSnapshot(position.reader(), amount);
+
+        uint256 held = whype.balanceOf(deployer);
+        wrapped = held >= amount ? 0 : amount - held;
+
+        vm.startBroadcast(key);
+        if (wrapped > 0) whype.deposit{value: wrapped}();
+        whype.approve(address(position), amount);
+        position.deposit(amount, 0);
+        vm.stopBroadcast();
     }
 
     function _requireFreshSnapshot(IHyperCoreBook book, uint256 size) internal view {
