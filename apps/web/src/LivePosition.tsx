@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient } from "viem";
-import { erc20Abi, positionV2Abi } from "./abi";
+import { bookAbi, erc20Abi, positionV2Abi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Ladder, Route, Ticker } from "./DeskParts";
@@ -25,6 +25,7 @@ type LiveView = {
   preview: string;
   previewDecision: number | null;
   bookAge: string;
+  bookStale: boolean;
   freshMid: bigint | null;
 };
 
@@ -38,6 +39,12 @@ function formatUnits(value: bigint, decimals: number, digits = 4): string {
   const whole = value / base;
   const frac = (value % base).toString().padStart(decimals, "0").slice(0, digits);
   return `${whole.toString()}.${frac}`;
+}
+
+function formatAge(seconds: number): string {
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  return `${Math.floor(seconds / 3600)}h ago`;
 }
 
 function parseUnits(value: string, decimals: number): bigint {
@@ -95,6 +102,7 @@ export function LivePosition({
       const location = Number(value<number>(1));
       let preview = "No live decision.";
       let bookAge = "—";
+      let bookStale = false;
       let freshMid: bigint | null = null;
       let previewDecision: number | null = null;
       if (location === 1 || location === 2) {
@@ -111,7 +119,20 @@ export function LivePosition({
           bookAge = `${age}s`;
           freshMid = mid;
         } catch (caught) {
-          preview = caught instanceof Error ? caught.message : "Book read failed";
+          const postedAt = await publicClient.readContract({
+            address: deployments.v2.keeperBook,
+            abi: bookAbi,
+            functionName: "postedAt",
+          });
+          const age = Math.max(0, Number(block.timestamp) - Number(postedAt));
+          const stale = postedAt === 0n || age > 15 || `${caught instanceof Error ? caught.message : caught}`.includes("0xd7815800");
+          if (stale) {
+            bookStale = true;
+            bookAge = postedAt === 0n ? "never" : formatAge(age);
+            preview = `The keeper is not posting, so the book is stale and swaps are paused. Last post: ${bookAge}.`;
+          } else {
+            preview = "Book read failed";
+          }
         }
       }
       setView({
@@ -129,6 +150,7 @@ export function LivePosition({
         preview,
         previewDecision,
         bookAge,
+        bookStale,
         freshMid,
       });
       setError("");
@@ -196,7 +218,7 @@ export function LivePosition({
 
   const isOwner = account !== null && view !== null && account.toLowerCase() === view.owner.toLowerCase();
   const locationName = view ? LOCATIONS[view.location] : "—";
-  const canEvaluate = view?.location === 1 || view?.location === 2;
+  const canEvaluate = (view?.location === 1 || view?.location === 2) && !view.bookStale;
   const tone = view?.location === 1 ? "quoted" : view?.location === 2 ? "pulled" : view && view.location >= 3 ? "scripted" : "idle";
 
   async function approveAndSwap() {
@@ -300,7 +322,7 @@ export function LivePosition({
               <button
                 className="primary swap"
                 type="button"
-                disabled={!account || !view.swapsOpen || view.location !== 1 || view.previewDecision === 2}
+                disabled={!account || !view.swapsOpen || view.bookStale || view.location !== 1 || view.previewDecision === 2}
                 onClick={() => void approveAndSwap()}
               >
                 Swap
