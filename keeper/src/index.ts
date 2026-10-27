@@ -8,7 +8,7 @@ import {
   type Address,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { elysiumTestnet } from "./chain.ts";
+import { elysiumTestnet, rpcLabel, rpcUrl } from "./chain.ts";
 import { quoteFromBook, type Level } from "./slippage.ts";
 
 const ONE = 10n ** 18n;
@@ -124,17 +124,18 @@ async function main() {
   const key = process.env.SHIFT_PRIVATE_KEY;
   const account = key ? privateKeyToAccount(key.startsWith("0x") ? (key as `0x${string}`) : `0x${key}`) : null;
   const wallet = account
-    ? createWalletClient({ account, chain: elysiumTestnet, transport: http(elysiumTestnet.rpcUrls.default.http[0]) })
+    ? createWalletClient({ account, chain: elysiumTestnet, transport: http(rpcUrl) })
     : null;
   const publicClient = createPublicClient({
     chain: elysiumTestnet,
-    transport: http(elysiumTestnet.rpcUrls.default.http[0]),
+    transport: http(rpcUrl),
   });
 
   for (const feed of feeds) {
     console.log(`${feed.label} (${feed.coin}) -> ${feed.book ?? "not deployed"}`);
   }
   console.log(`signer ${account?.address ?? "dry run"}`);
+  console.log(`rpc ${rpcLabel()}`);
 
   // Each evaluate costs about as much gas as a post. Skip it when it would change nothing:
   // a Quoted mid still close to the book, or a Pulled mid the book has not come back to.

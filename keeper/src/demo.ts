@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { elysiumTestnet } from "./chain.ts";
+import { elysiumTestnet, rpcUrl } from "./chain.ts";
 
 const ONE = 10n ** 18n;
 const LOC = { Uninitialized: 0, Quoted: 1, Pulled: 2, InTransit: 3, OnCoreIdle: 4, Resting: 5 } as const;
@@ -93,7 +93,7 @@ async function main() {
   const key = process.env.SHIFT_PRIVATE_KEY;
   if (!key) throw new Error("SHIFT_PRIVATE_KEY is required");
   const account = privateKeyToAccount(key.startsWith("0x") ? (key as Hex) : `0x${key}`);
-  const rpc = elysiumTestnet.rpcUrls.default.http[0];
+  const rpc = rpcUrl;
   const publicClient = createPublicClient({ chain: elysiumTestnet, transport: http(rpc) });
   const wallet = createWalletClient({ account, chain: elysiumTestnet, transport: http(rpc) });
   const { position, scriptedBook, base } = loadAddresses();

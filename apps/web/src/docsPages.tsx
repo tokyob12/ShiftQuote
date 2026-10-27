@@ -2,8 +2,8 @@ import type { ReactElement } from "react";
 import type { DocsPage } from "./Docs";
 import { deployments } from "./deployments";
 
-const hypeFaucet = "https://elysium.kinetiq.xyz/testnet-faucet";
-const explorer = "https://elysium.kinetiq.xyz/testnet-explorer";
+const hypeFaucet = "https://testnet.elysium.kinetiq.xyz/faucet";
+const explorer = "https://testnet.elysium.kinetiq.xyz/explorer";
 
 export function DocArticle({ page }: { page: DocsPage }) {
   const Body = pages[page];

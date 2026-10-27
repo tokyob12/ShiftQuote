@@ -6,7 +6,7 @@ export const elysiumTestnet = defineChain({
   nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
   rpcUrls: { default: { http: ["https://testnet-rpc.elysium.kinetiq.xyz"] } },
   blockExplorers: {
-    default: { name: "Elysium", url: "https://elysium.kinetiq.xyz/testnet-explorer" },
+    default: { name: "Elysium", url: "https://testnet.elysium.kinetiq.xyz" },
   },
   contracts: {
     multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },

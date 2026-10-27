@@ -219,6 +219,15 @@ export function LivePosition({
   const isOwner = account !== null && view !== null && account.toLowerCase() === view.owner.toLowerCase();
   const locationName = view ? LOCATIONS[view.location] : "—";
   const canEvaluate = (view?.location === 1 || view?.location === 2) && !view.bookStale;
+  const wantBase = (() => {
+    try {
+      return parseUnits(swapSize, 18);
+    } catch {
+      return 0n;
+    }
+  })();
+  const soldOut = view !== null && view.elysiumBase === 0n;
+  const overSize = view !== null && !soldOut && wantBase > view.elysiumBase;
   const tone = view?.location === 1 ? "quoted" : view?.location === 2 ? "pulled" : view && view.location >= 3 ? "scripted" : "idle";
 
   async function approveAndSwap() {
@@ -286,7 +295,7 @@ export function LivePosition({
               </div>
               <div>
                 <dt>Swaps</dt>
-                <dd>{view.swapsOpen ? "Open" : "Closed"}</dd>
+                <dd>{!view.swapsOpen ? "Closed" : soldOut ? "Sold out" : "Open"}</dd>
               </div>
             </dl>
             <p className="hint">WHYPE marked against the HyperCore HYPE/USDC book. The slice stays in this contract. This is not an order on HyperCore.</p>
@@ -322,16 +331,29 @@ export function LivePosition({
               <button
                 className="primary swap"
                 type="button"
-                disabled={!account || !view.swapsOpen || view.bookStale || view.location !== 1 || view.previewDecision === 2}
+                disabled={
+                  !account ||
+                  !view.swapsOpen ||
+                  view.bookStale ||
+                  view.location !== 1 ||
+                  view.previewDecision === 2 ||
+                  soldOut ||
+                  overSize ||
+                  wantBase === 0n
+                }
                 onClick={() => void approveAndSwap()}
               >
                 Swap
               </button>
             </div>
             <p className="hint">
-              {view.swapsOpen
-                ? "Swap reads the book in the same transaction. Inside 50 bps it sells at the fresh mid. Outside the band it reverts. Payment is mUSDC."
-                : "Swaps are closed. Evaluate still reads the book."}
+              {!view.swapsOpen
+                ? "Swaps are closed. Evaluate still reads the book."
+                : soldOut
+                  ? `Sold out. The position has no ${deployments.v2.baseSymbol} left to sell. The LP can deposit more.`
+                  : overSize
+                    ? `Only ${formatUnits(view.elysiumBase, 18)} ${deployments.v2.baseSymbol} is left. Lower the amount to buy.`
+                    : "Swap reads the book in the same transaction. Inside 50 bps it sells at the fresh mid. Outside the band it reverts. Payment is mUSDC."}
             </p>
             {isOwner && (
               <div className="owner-block">

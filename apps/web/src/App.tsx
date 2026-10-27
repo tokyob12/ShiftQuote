@@ -282,6 +282,13 @@ export function App() {
     position?.scripted &&
     (position.transitBase > 0n || position.coreIdleBase > 0n || position.restingBase > 0n);
 
+  const baseWanted = (() => {
+    try {
+      return parseUnits(swapSize, 18);
+    } catch {
+      return 0n;
+    }
+  })();
   const tone =
     position?.location === 1
       ? "quoted"
@@ -428,13 +435,19 @@ export function App() {
                   <button
                     className="primary swap"
                     type="button"
-                    disabled={!account || position.location !== 1}
+                    disabled={!account || position.location !== 1 || position.elysiumBase === 0n || baseWanted > position.elysiumBase}
                     onClick={() => void approveAndSwap()}
                   >
                     Swap
                   </button>
                 </div>
-                <p className="hint">Swap is rejected while the position is Pulled. Quoted sells base at the quoted mid.</p>
+                <p className="hint">
+                  {position.elysiumBase === 0n
+                    ? "Sold out. The position has no SDA left to sell."
+                    : baseWanted > position.elysiumBase
+                      ? `Only ${formatUnits(position.elysiumBase, 18)} SDA is left. Lower the amount to buy.`
+                      : "Swap is rejected while the position is Pulled. Quoted sells base at the quoted mid."}
+                </p>
               </>
             ) : (
               <p className="hint loading">{deployed ? loadError || "Reading the position…" : "Deploy to show a position."}</p>

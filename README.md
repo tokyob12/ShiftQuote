@@ -10,8 +10,8 @@ The keeper posts the live HyperCore ETH book into `KeeperBook` every few seconds
 
 - Chain ID `99801`
 - RPC `https://testnet-rpc.elysium.kinetiq.xyz`
-- Explorer `https://elysium.kinetiq.xyz/testnet-explorer`
-- Testnet HYPE faucet: `https://elysium.kinetiq.xyz/testnet-faucet`
+- Explorer `https://testnet.elysium.kinetiq.xyz/explorer`
+- Testnet HYPE faucet: `https://testnet.elysium.kinetiq.xyz/faucet`
 
 Canonical testnet USDC (`0x7D29d8047B905000459c0E80c34a26CeedcB47b2`) is used only when the deployer already holds at least 1,000 of it. Otherwise the deploy mints `mUSDC` and the app labels it as a mock.
 
@@ -67,4 +67,4 @@ cd keeper && SHIFT_PRIVATE_KEY=0x... npm start
 SHIFT_PRIVATE_KEY=0x... SHIFT_V2_BASE=5000000000000000000 forge script contracts/script/SeedV2.s.sol --rpc-url https://testnet-rpc.elysium.kinetiq.xyz --broadcast
 ```
 
-The deploy writes `deployments/v2.json`, not `apps/web/src/deployments.ts`. Once that file exists, the keeper posts the `@107` book. It posts the ETH book too only when `SHIFT_POST_ETH` is set. `SHIFT_SPOT_SIZE` sets the HYPE size used for the slippage walk (default 10). SeedV2 reads the spot snapshot before any transaction and stops if there is none or it is older than 15 seconds. After seeding, open swaps with `setSwapsOpen(true)`.
+The deploy writes `deployments/v2.json`, not `apps/web/src/deployments.ts`. Once that file exists, the keeper posts the `@107` book. It posts the ETH book too only when `SHIFT_POST_ETH` is set. `SHIFT_SPOT_SIZE` sets the HYPE size used for the slippage walk (default 10). `SHIFT_RPC_URL` points the keeper at a provider endpoint such as Alchemy (`https://elysium-testnet.g.alchemy.com/v2/<key>`); Elysium asks for one for steady traffic, and the shared public RPC is only the fallback. The keeper logs the RPC host, never the key. SeedV2 reads the spot snapshot before any transaction and stops if there is none or it is older than 15 seconds. After seeding, open swaps with `setSwapsOpen(true)`.
