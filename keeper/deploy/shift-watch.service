@@ -1,0 +1,14 @@
+# Runs one keeper health check. Started every minute by shift-watch.timer.
+# Put SHIFT_RPC_URL, SHIFT_TELEGRAM_TOKEN, SHIFT_TELEGRAM_CHAT_ID, or SHIFT_ALERT_WEBHOOK
+# in /etc/shift/watch.env. The watcher needs no private key.
+[Unit]
+Description=Shift keeper health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/shift-keeper/keeper
+Environment=PATH=/home/ubuntu/.local/bin:/usr/bin
+EnvironmentFile=-/etc/shift/watch.env
+ExecStart=/home/ubuntu/.local/bin/npm run --silent watch

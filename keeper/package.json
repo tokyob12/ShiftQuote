@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "demo": "tsx src/demo.ts"
+    "demo": "tsx src/demo.ts",
+    "watch": "tsx src/watch.ts"
   },
   "dependencies": {
     "viem": "^2.38.3"

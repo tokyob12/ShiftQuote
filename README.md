@@ -68,3 +68,29 @@ SHIFT_PRIVATE_KEY=0x... SHIFT_V2_BASE=5000000000000000000 forge script contracts
 ```
 
 The deploy writes `deployments/v2.json`, not `apps/web/src/deployments.ts`. Once that file exists, the keeper posts the `@107` book. It posts the ETH book too only when `SHIFT_POST_ETH` is set. `SHIFT_SPOT_SIZE` sets the HYPE size used for the slippage walk (default 10). `SHIFT_RPC_URL` points the keeper at a provider endpoint such as Alchemy (`https://elysium-testnet.g.alchemy.com/v2/<key>`); Elysium asks for one for steady traffic, and the shared public RPC is only the fallback. The keeper logs the RPC host, never the key. SeedV2 reads the spot snapshot before any transaction and stops if there is none or it is older than 15 seconds. After seeding, open swaps with `setSwapsOpen(true)`.
+
+## Keeper health alert
+
+`npm run watch` in `keeper/` runs one check and exits. It runs apart from the keeper, so a keeper that crashed or hangs is still caught. It alerts when:
+
+- the spot book is older than `SHIFT_STALE_SECONDS` (default 60),
+- the keeper address holds less than `SHIFT_LOW_GAS_HYPE` (default 0.1),
+- the live position is Pulled, or has no WHYPE left while swaps are open,
+- the chain cannot be read for `SHIFT_RPC_FAILS` checks in a row (default 3). A single failed read is retried, then counted, and does not alert by itself.
+
+Each problem is sent once, repeated every `SHIFT_REMIND_MINUTES` (default 60) while it lasts, and followed by a resolved message. Alerts go to Telegram with `SHIFT_TELEGRAM_TOKEN` and `SHIFT_TELEGRAM_CHAT_ID`, and to any Discord or Slack style webhook with `SHIFT_ALERT_WEBHOOK`. It needs no private key.
+
+The unit runs as `ubuntu` in `/home/ubuntu/shift-keeper/keeper`, with `PATH` set to that user's Node install. Copy `keeper/deploy/shift-watch.service` and `shift-watch.timer` to `/etc/systemd/system/`, put the variables in `/etc/shift/watch.env`, then:
+
+```bash
+sudo systemctl daemon-reload && sudo systemctl enable --now shift-watch.timer
+```
+
+## Verifying contracts
+
+The explorer runs Blockscout and needs no API key. `contracts/script/verify.sh` verifies every live contract with `forge verify-contract`, reading each constructor argument back from the chain. `DRY_RUN=1` prints the commands without submitting. The first PositionV2 (`0x46093Bb7…`) is left out because it was built from a source before `requote`.
+
+```bash
+DRY_RUN=1 contracts/script/verify.sh
+contracts/script/verify.sh
+```
