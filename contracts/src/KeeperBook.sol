@@ -50,4 +50,13 @@ contract KeeperBook is IHyperCoreBook {
     function isScripted() external pure returns (bool) {
         return false;
     }
+
+    /// @notice Binds size, direction, and the posted timestamp into a quote id.
+    ///         `read` is unchanged, so a desk swap still ignores the size argument.
+    function boundQuote(uint256 size, uint8 direction) external view returns (bytes32) {
+        if (size == 0 || direction == 0 || bidX18 == 0 || block.timestamp - postedAt > FRESHNESS_SECONDS) {
+            revert Stale();
+        }
+        return keccak256(abi.encode(size, direction, postedAt, bidX18, askX18, address(this)));
+    }
 }

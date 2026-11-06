@@ -1,0 +1,13 @@
+# Read-only Match check. Started every minute by shift-match-watch.timer.
+# The process does not load a signing key.
+[Unit]
+Description=Shift Match health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/shift-keeper/keeper
+Environment=PATH=/home/ubuntu/.local/bin:/usr/bin
+EnvironmentFile=-/etc/shift/watch.env
+ExecStart=/home/ubuntu/.local/bin/npm run --silent match-watch

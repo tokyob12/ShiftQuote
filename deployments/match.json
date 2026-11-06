@@ -1,0 +1,13 @@
+{
+  "elysiumChainId": 99801,
+  "hyperChainId": 998,
+  "elysiumMatch": "0x0000000000000000000000000000000000000000",
+  "hyperMatch": "0x0000000000000000000000000000000000000000",
+  "sourceMatch": "0xc22a42A91597D314f4327e0B5283a8E5446618D1",
+  "destMatch": "0xf0A6345093eA6f04768B3CfeaBf50b65A9a3F0c9",
+  "lpFactory": "0x935320dECc094a8A80ea5AEfA130C640a4f65Eb9",
+  "lpPosition": "0xD78c771501F83139dEae1A88A6197F12C2bD43c0",
+  "exitFeeBps": 20,
+  "protocolFeeBps": 5,
+  "homepage": "landing"
+}

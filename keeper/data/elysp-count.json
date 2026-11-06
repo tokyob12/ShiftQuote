@@ -1,0 +1,870 @@
+{
+  "readAt": "2026-11-05T10:39:14.677Z",
+  "note": "State codes are the ones the ElysP desk uses. Chain totals are separate because one trade is recorded on both chains. This count does not integrate Shift with ElysP.",
+  "sides": [
+    {
+      "chain": "elysium",
+      "chainId": 99901,
+      "version": "v2",
+      "address": "0x724cdB8C588671189766f7B9Bad4C01cDcE2EB8a",
+      "counts": {
+        "offers": 104,
+        "fills": 49,
+        "locks": 7
+      },
+      "matchedHypeWei": "95416000000000000000",
+      "offerStates": {
+        "1": 7,
+        "2": 15,
+        "3": 82
+      },
+      "lockStates": {
+        "3": 7
+      },
+      "cancelledOffers": 82,
+      "expiredLocks": 7,
+      "claimedLocks": 0,
+      "openOffers": 7,
+      "uniqueTakers": 28,
+      "waitSeconds": {
+        "samples": 0,
+        "min": null,
+        "median": null,
+        "max": null,
+        "windowSeconds": 1800
+      },
+      "fillView": true,
+      "fills": [
+        {
+          "id": 0,
+          "offerId": 1,
+          "taker": "0xfc8cd127b55bc75389dd309d0c7fb31d788dfa7d",
+          "timestamp": 1793258117,
+          "legs": [
+            "1000000000000000000",
+            "900000000000000000"
+          ],
+          "matched": "1000000000000000000"
+        },
+        {
+          "id": 1,
+          "offerId": 1,
+          "taker": "0xfc8cd127b55bc75389dd309d0c7fb31d788dfa7d",
+          "timestamp": 1793258210,
+          "legs": [
+            "4000000000000000000",
+            "3600000000000000000"
+          ],
+          "matched": "4000000000000000000"
+        },
+        {
+          "id": 2,
+          "offerId": 2,
+          "taker": "0xfc8cd127b55bc75389dd309d0c7fb31d788dfa7d",
+          "timestamp": 1793258235,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 3,
+          "offerId": 7,
+          "taker": "0xed49c09369c05fe99395b1e68758c51fe16bc269",
+          "timestamp": 1793265040,
+          "legs": [
+            "3000000000000000000",
+            "2700000000000000000"
+          ],
+          "matched": "3000000000000000000"
+        },
+        {
+          "id": 4,
+          "offerId": 12,
+          "taker": "0xfc8cd127b55bc75389dd309d0c7fb31d788dfa7d",
+          "timestamp": 1793275873,
+          "legs": [
+            "11380000000000000000",
+            "9900000000000000000"
+          ],
+          "matched": "11380000000000000000"
+        },
+        {
+          "id": 5,
+          "offerId": 7,
+          "taker": "0xf79dfcf61a59b1bcd6cfff957005f7de77ff2581",
+          "timestamp": 1793279563,
+          "legs": [
+            "10000000000000000000",
+            "9000000000000000000"
+          ],
+          "matched": "10000000000000000000"
+        },
+        {
+          "id": 6,
+          "offerId": 20,
+          "taker": "0x1b3dc8bb8327f2772a125331124f40373399acdc",
+          "timestamp": 1793280048,
+          "legs": [
+            "500000000000000000",
+            "430000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 7,
+          "offerId": 21,
+          "taker": "0x3c919b67deae071150537e1391d60d3d0c5ce616",
+          "timestamp": 1793283984,
+          "legs": [
+            "409000000000000000",
+            "300000000000000000"
+          ],
+          "matched": "409000000000000000"
+        },
+        {
+          "id": 8,
+          "offerId": 30,
+          "taker": "0x227ff2024b27e07b6572a3f657b201e103ffab0c",
+          "timestamp": 1793299235,
+          "legs": [
+            "3170000000000000000",
+            "2700000000000000000"
+          ],
+          "matched": "3170000000000000000"
+        },
+        {
+          "id": 9,
+          "offerId": 2,
+          "taker": "0xf9ff51570f657209d4ce5a1c980ab283d75d65f0",
+          "timestamp": 1793311972,
+          "legs": [
+            "400000000000000000",
+            "360000000000000000"
+          ],
+          "matched": "400000000000000000"
+        },
+        {
+          "id": 10,
+          "offerId": 2,
+          "taker": "0x9c84ad0461a666efb998abb4a7332d25fa9d84f5",
+          "timestamp": 1793316873,
+          "legs": [
+            "100000000000000000",
+            "90000000000000000"
+          ],
+          "matched": "100000000000000000"
+        },
+        {
+          "id": 11,
+          "offerId": 14,
+          "taker": "0x9c84ad0461a666efb998abb4a7332d25fa9d84f5",
+          "timestamp": 1793317160,
+          "legs": [
+            "10000000000000000",
+            "9500000000000000"
+          ],
+          "matched": "10000000000000000"
+        },
+        {
+          "id": 12,
+          "offerId": 14,
+          "taker": "0x9c84ad0461a666efb998abb4a7332d25fa9d84f5",
+          "timestamp": 1793319549,
+          "legs": [
+            "10000000000000000",
+            "9500000000000000"
+          ],
+          "matched": "10000000000000000"
+        },
+        {
+          "id": 13,
+          "offerId": 48,
+          "taker": "0x38d86e9ba83426a3064968ae965adc4c850338c9",
+          "timestamp": 1793351550,
+          "legs": [
+            "250000000000000000",
+            "200000000000000000"
+          ],
+          "matched": "250000000000000000"
+        },
+        {
+          "id": 14,
+          "offerId": 47,
+          "taker": "0x4709ca929974529eac0f830368b13812c2aec9cd",
+          "timestamp": 1793351730,
+          "legs": [
+            "400000000000000000",
+            "369444444444444445"
+          ],
+          "matched": "400000000000000000"
+        },
+        {
+          "id": 15,
+          "offerId": 42,
+          "taker": "0x38d86e9ba83426a3064968ae965adc4c850338c9",
+          "timestamp": 1793352044,
+          "legs": [
+            "300000000000000000",
+            "268624641833810889"
+          ],
+          "matched": "300000000000000000"
+        },
+        {
+          "id": 16,
+          "offerId": 2,
+          "taker": "0x38d86e9ba83426a3064968ae965adc4c850338c9",
+          "timestamp": 1793353990,
+          "legs": [
+            "300000000000000000",
+            "270000000000000000"
+          ],
+          "matched": "300000000000000000"
+        },
+        {
+          "id": 17,
+          "offerId": 46,
+          "taker": "0x38d86e9ba83426a3064968ae965adc4c850338c9",
+          "timestamp": 1793355512,
+          "legs": [
+            "320000000000000000",
+            "296000000000000000"
+          ],
+          "matched": "320000000000000000"
+        },
+        {
+          "id": 18,
+          "offerId": 50,
+          "taker": "0x3c919b67deae071150537e1391d60d3d0c5ce616",
+          "timestamp": 1793364817,
+          "legs": [
+            "260000000000000000",
+            "200000000000000000"
+          ],
+          "matched": "260000000000000000"
+        },
+        {
+          "id": 19,
+          "offerId": 42,
+          "taker": "0x509380d9bbff0d874722fa0ff9daa8d2cc9d9cac",
+          "timestamp": 1793375672,
+          "legs": [
+            "698000000000000000",
+            "625000000000000000"
+          ],
+          "matched": "698000000000000000"
+        },
+        {
+          "id": 20,
+          "offerId": 42,
+          "taker": "0x4498e529efb978babf36e28036cbbdf294c8dbbf",
+          "timestamp": 1793388883,
+          "legs": [
+            "698000000000000000",
+            "625000000000000000"
+          ],
+          "matched": "698000000000000000"
+        },
+        {
+          "id": 21,
+          "offerId": 2,
+          "taker": "0x4498e529efb978babf36e28036cbbdf294c8dbbf",
+          "timestamp": 1793389006,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 22,
+          "offerId": 2,
+          "taker": "0x867e6406d94bafb6c9d0079c13aedafa2caad3b4",
+          "timestamp": 1793411786,
+          "legs": [
+            "100000000000000000",
+            "90000000000000000"
+          ],
+          "matched": "100000000000000000"
+        },
+        {
+          "id": 23,
+          "offerId": 2,
+          "taker": "0x2e7c198828488087c1014e4d0e38c46724addb04",
+          "timestamp": 1793425461,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 24,
+          "offerId": 46,
+          "taker": "0x2e7c198828488087c1014e4d0e38c46724addb04",
+          "timestamp": 1793425626,
+          "legs": [
+            "480000000000000000",
+            "444000000000000000"
+          ],
+          "matched": "480000000000000000"
+        },
+        {
+          "id": 25,
+          "offerId": 16,
+          "taker": "0x2e7c198828488087c1014e4d0e38c46724addb04",
+          "timestamp": 1793425672,
+          "legs": [
+            "1000000000000000",
+            "800000000000000"
+          ],
+          "matched": "1000000000000000"
+        },
+        {
+          "id": 26,
+          "offerId": 62,
+          "taker": "0x3f8bfdbc99877e49df3df9930b4669c167af6119",
+          "timestamp": 1793437639,
+          "legs": [
+            "1000000000000000000",
+            "940000000000000000"
+          ],
+          "matched": "1000000000000000000"
+        },
+        {
+          "id": 27,
+          "offerId": 57,
+          "taker": "0x3f8bfdbc99877e49df3df9930b4669c167af6119",
+          "timestamp": 1793437674,
+          "legs": [
+            "7500000000000000000",
+            "7000000000000000000"
+          ],
+          "matched": "7500000000000000000"
+        },
+        {
+          "id": 28,
+          "offerId": 69,
+          "taker": "0x8ca9411a18775079e65c2bb55f506b07676437e8",
+          "timestamp": 1793464894,
+          "legs": [
+            "3100000000000000000",
+            "2400000000000000000"
+          ],
+          "matched": "3100000000000000000"
+        },
+        {
+          "id": 29,
+          "offerId": 2,
+          "taker": "0x8ca9411a18775079e65c2bb55f506b07676437e8",
+          "timestamp": 1793465376,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 30,
+          "offerId": 2,
+          "taker": "0x8ca9411a18775079e65c2bb55f506b07676437e8",
+          "timestamp": 1793498584,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 31,
+          "offerId": 72,
+          "taker": "0x7397b51b07c15abcee85c74000066f5b48552c4c",
+          "timestamp": 1793530525,
+          "legs": [
+            "100000000000000000",
+            "100000000000000000"
+          ],
+          "matched": "100000000000000000"
+        },
+        {
+          "id": 32,
+          "offerId": 75,
+          "taker": "0x03b3336cd8b32c1d4ab449c0d0a5e08ff8c171dc",
+          "timestamp": 1793574542,
+          "legs": [
+            "1150000000000000000",
+            "1000511770726714432"
+          ],
+          "matched": "1150000000000000000"
+        },
+        {
+          "id": 33,
+          "offerId": 73,
+          "taker": "0xfe3f7c46778583b1c3bced0e6848274501365046",
+          "timestamp": 1793579115,
+          "legs": [
+            "500000000000000000",
+            "420000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 34,
+          "offerId": 75,
+          "taker": "0xfe3f7c46778583b1c3bced0e6848274501365046",
+          "timestamp": 1793580239,
+          "legs": [
+            "2000000000000000000",
+            "1740020470829068578"
+          ],
+          "matched": "2000000000000000000"
+        },
+        {
+          "id": 35,
+          "offerId": 2,
+          "taker": "0xfe3f7c46778583b1c3bced0e6848274501365046",
+          "timestamp": 1793583958,
+          "legs": [
+            "500000000000000000",
+            "450000000000000000"
+          ],
+          "matched": "500000000000000000"
+        },
+        {
+          "id": 36,
+          "offerId": 75,
+          "taker": "0x93386514fad7eba7eb12b98e676ea522c1588262",
+          "timestamp": 1793606323,
+          "legs": [
+            "1000000000000000000",
+            "870010235414534289"
+          ],
+          "matched": "1000000000000000000"
+        },
+        {
+          "id": 37,
+          "offerId": 75,
+          "taker": "0x93386514fad7eba7eb12b98e676ea522c1588262",
+          "timestamp": 1793606890,
+          "legs": [
+            "10000000000000000000",
+            "8700102354145342887"
+          ],
+          "matched": "10000000000000000000"
+        },
+        {
+          "id": 38,
+          "offerId": 81,
+          "taker": "0x3c919b67deae071150537e1391d60d3d0c5ce616",
+          "timestamp": 1793620465,
+          "legs": [
+            "750000000000000000",
+            "666000000000000000"
+          ],
+          "matched": "750000000000000000"
+        },
+        {
+          "id": 39,
+          "offerId": 85,
+          "taker": "0xe7e348784eaff359d93212cfe2fd8d43e5f2b446",
+          "timestamp": 1793636514,
+          "legs": [
+            "600000000000000000",
+            "513219284603421462"
+          ],
+          "matched": "600000000000000000"
+        },
+        {
+          "id": 40,
+          "offerId": 85,
+          "taker": "0xab1ef6a2bd769dce3da9cd96e8f16f00f50ee6e6",
+          "timestamp": 1793638600,
+          "legs": [
+            "1030000000000000000",
+            "881026438569206843"
+          ],
+          "matched": "1030000000000000000"
+        },
+        {
+          "id": 41,
+          "offerId": 85,
+          "taker": "0xced74f93b272bb824e7ae3517fe05800046dab65",
+          "timestamp": 1793646932,
+          "legs": [
+            "1150000000000000000",
+            "983670295489891136"
+          ],
+          "matched": "1150000000000000000"
+        },
+        {
+          "id": 42,
+          "offerId": 85,
+          "taker": "0x1004d2046aa993c91fd97ff7a18f3f84a9057bf5",
+          "timestamp": 1793649158,
+          "legs": [
+            "1490000000000000000",
+            "1274494556765163298"
+          ],
+          "matched": "1490000000000000000"
+        },
+        {
+          "id": 43,
+          "offerId": 85,
+          "taker": "0x54b3383f1d958331db2c41df8ee63c8a15a80af7",
+          "timestamp": 1793649872,
+          "legs": [
+            "1080000000000000000",
+            "923794712286158632"
+          ],
+          "matched": "1080000000000000000"
+        },
+        {
+          "id": 44,
+          "offerId": 88,
+          "taker": "0xab1ef6a2bd769dce3da9cd96e8f16f00f50ee6e6",
+          "timestamp": 1793650029,
+          "legs": [
+            "660000000000000000",
+            "560000000000000000"
+          ],
+          "matched": "660000000000000000"
+        },
+        {
+          "id": 45,
+          "offerId": 90,
+          "taker": "0xcb5c2f378860437fad512c3aec09efce1c470283",
+          "timestamp": 1793672939,
+          "legs": [
+            "20370000000000000000",
+            "17000000000000000000"
+          ],
+          "matched": "20370000000000000000"
+        },
+        {
+          "id": 46,
+          "offerId": 87,
+          "taker": "0x84189b7395036fb1880cb3c6b68c0665b45cf518",
+          "timestamp": 1793680108,
+          "legs": [
+            "300000000000000000",
+            "255000000000000000"
+          ],
+          "matched": "300000000000000000"
+        },
+        {
+          "id": 47,
+          "offerId": 14,
+          "taker": "0xe7e348784eaff359d93212cfe2fd8d43e5f2b446",
+          "timestamp": 1793733986,
+          "legs": [
+            "10000000000000000",
+            "9500000000000000"
+          ],
+          "matched": "10000000000000000"
+        },
+        {
+          "id": 48,
+          "offerId": 95,
+          "taker": "0x973cf1568cd76d2645dbfa6e0691fa01dbe4e693",
+          "timestamp": 1793768445,
+          "legs": [
+            "840000000000000000",
+            "680000000000000000"
+          ],
+          "matched": "840000000000000000"
+        }
+      ]
+    },
+    {
+      "chain": "elysium",
+      "chainId": 99901,
+      "version": "v1",
+      "address": "0xC67d480D450820Df408e7963945FaD18E2A090fC",
+      "counts": {
+        "offers": 6,
+        "fills": 0,
+        "locks": 0
+      },
+      "matchedHypeWei": "0",
+      "offerStates": {
+        "2": 2,
+        "3": 4
+      },
+      "lockStates": {},
+      "cancelledOffers": 4,
+      "expiredLocks": 0,
+      "claimedLocks": 0,
+      "openOffers": 0,
+      "uniqueTakers": 0,
+      "waitSeconds": {
+        "samples": 0,
+        "min": null,
+        "median": null,
+        "max": null,
+        "windowSeconds": 1800
+      },
+      "fillView": false,
+      "fills": []
+    },
+    {
+      "chain": "hyperevm",
+      "chainId": 999,
+      "version": "v2",
+      "address": "0x724cdB8C588671189766f7B9Bad4C01cDcE2EB8a",
+      "counts": {
+        "offers": 11,
+        "fills": 17,
+        "locks": 50
+      },
+      "matchedHypeWei": "43920000000000000000",
+      "offerStates": {
+        "1": 1,
+        "2": 1,
+        "3": 9
+      },
+      "lockStates": {
+        "2": 30,
+        "3": 20
+      },
+      "cancelledOffers": 9,
+      "expiredLocks": 20,
+      "claimedLocks": 30,
+      "openOffers": 1,
+      "uniqueTakers": 8,
+      "waitSeconds": {
+        "samples": 0,
+        "min": null,
+        "median": null,
+        "max": null,
+        "windowSeconds": 1800,
+        "amountMatchedAnyDelay": {
+          "samples": 8,
+          "min": 249519,
+          "median": 266518.0,
+          "max": 462017
+        }
+      },
+      "fillView": true,
+      "fills": [
+        {
+          "id": 0,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793613976,
+          "legs": [
+            "50000000000000000",
+            "200000000000000000"
+          ],
+          "matched": "200000000000000000"
+        },
+        {
+          "id": 1,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793616267,
+          "legs": [
+            "50000000000000000",
+            "200000000000000000"
+          ],
+          "matched": "200000000000000000"
+        },
+        {
+          "id": 2,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793618065,
+          "legs": [
+            "1000000000000000",
+            "4000000000000000"
+          ],
+          "matched": "4000000000000000"
+        },
+        {
+          "id": 3,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793618074,
+          "legs": [
+            "1000000000000000",
+            "4000000000000000"
+          ],
+          "matched": "4000000000000000"
+        },
+        {
+          "id": 4,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793618407,
+          "legs": [
+            "2000000000000000",
+            "8000000000000000"
+          ],
+          "matched": "8000000000000000"
+        },
+        {
+          "id": 5,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793621890,
+          "legs": [
+            "10000000000000000",
+            "40000000000000000"
+          ],
+          "matched": "40000000000000000"
+        },
+        {
+          "id": 6,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793622686,
+          "legs": [
+            "10000000000000000",
+            "40000000000000000"
+          ],
+          "matched": "40000000000000000"
+        },
+        {
+          "id": 7,
+          "offerId": 0,
+          "taker": "0x015ef3e751255c0bcad8046d1541ab3a221f3de2",
+          "timestamp": 1793623098,
+          "legs": [
+            "10000000000000000",
+            "40000000000000000"
+          ],
+          "matched": "40000000000000000"
+        },
+        {
+          "id": 8,
+          "offerId": 5,
+          "taker": "0xf0523ab60ba86ad2b0de020106c280b15108e12d",
+          "timestamp": 1793695699,
+          "legs": [
+            "4700000000000000000",
+            "5640000000000000000"
+          ],
+          "matched": "5640000000000000000"
+        },
+        {
+          "id": 9,
+          "offerId": 5,
+          "taker": "0x900c41eda7013b1e1c1ad3af3c47188a04a2160a",
+          "timestamp": 1793718061,
+          "legs": [
+            "2000000000000000000",
+            "2400000000000000000"
+          ],
+          "matched": "2400000000000000000"
+        },
+        {
+          "id": 10,
+          "offerId": 5,
+          "taker": "0xbf7cd135a4db4acd5cd4dc5b449bb658a6dcdf66",
+          "timestamp": 1793719692,
+          "legs": [
+            "3600000000000000000",
+            "4320000000000000000"
+          ],
+          "matched": "4320000000000000000"
+        },
+        {
+          "id": 11,
+          "offerId": 5,
+          "taker": "0xbf7cd135a4db4acd5cd4dc5b449bb658a6dcdf66",
+          "timestamp": 1793719867,
+          "legs": [
+            "3600000000000000000",
+            "4320000000000000000"
+          ],
+          "matched": "4320000000000000000"
+        },
+        {
+          "id": 12,
+          "offerId": 5,
+          "taker": "0x900c41eda7013b1e1c1ad3af3c47188a04a2160a",
+          "timestamp": 1793720409,
+          "legs": [
+            "2000000000000000000",
+            "2400000000000000000"
+          ],
+          "matched": "2400000000000000000"
+        },
+        {
+          "id": 13,
+          "offerId": 0,
+          "taker": "0x86627d1f70a2e2e8bf35803d4be90a7d104a55ef",
+          "timestamp": 1793756894,
+          "legs": [
+            "50000000000000000",
+            "200000000000000000"
+          ],
+          "matched": "200000000000000000"
+        },
+        {
+          "id": 14,
+          "offerId": 0,
+          "taker": "0xa26cc5fd86def0050de3ef43dd4796dae89ca25c",
+          "timestamp": 1793778197,
+          "legs": [
+            "1000000000000000",
+            "4000000000000000"
+          ],
+          "matched": "4000000000000000"
+        },
+        {
+          "id": 15,
+          "offerId": 5,
+          "taker": "0x385f146000e8aef82a4edf11a58ff107512729d7",
+          "timestamp": 1793789038,
+          "legs": [
+            "20000000000000000000",
+            "24000000000000000000"
+          ],
+          "matched": "24000000000000000000"
+        },
+        {
+          "id": 16,
+          "offerId": 0,
+          "taker": "0xea4ac3b51e75ff58de93d3ed6531d45c28a4c6c7",
+          "timestamp": 1793807326,
+          "legs": [
+            "25000000000000000",
+            "100000000000000000"
+          ],
+          "matched": "100000000000000000"
+        }
+      ]
+    },
+    {
+      "chain": "hyperevm",
+      "chainId": 999,
+      "version": "v1",
+      "address": "0xC67d480D450820Df408e7963945FaD18E2A090fC",
+      "counts": {
+        "offers": 0,
+        "fills": 0,
+        "locks": 2
+      },
+      "matchedHypeWei": "0",
+      "offerStates": {},
+      "lockStates": {
+        "2": 2
+      },
+      "cancelledOffers": 0,
+      "expiredLocks": 0,
+      "claimedLocks": 2,
+      "openOffers": 0,
+      "uniqueTakers": 0,
+      "waitSeconds": {
+        "samples": 0,
+        "min": null,
+        "median": null,
+        "max": null,
+        "windowSeconds": 1800
+      },
+      "fillView": false,
+      "fills": []
+    }
+  ]
+}

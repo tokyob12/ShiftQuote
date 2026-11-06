@@ -1,0 +1,140 @@
+.match-page main {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: var(--s6) var(--gutter) var(--s8);
+}
+
+.match-hero h1 {
+  margin: var(--s3) 0;
+  font-size: var(--fs-40);
+  line-height: 1.1;
+  max-width: 16ch;
+}
+
+.match-notice,
+.match-status {
+  color: var(--ink-2);
+  font-size: var(--fs-15);
+}
+
+.match-quote,
+.match-grid section {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  margin-top: var(--s5);
+}
+
+.match-quote dl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin: var(--s4) 0 0;
+}
+
+.match-quote dt,
+.match-grid p {
+  color: var(--ink-3);
+  font-size: var(--fs-13);
+}
+
+.match-quote dd {
+  margin: var(--s1) 0 0;
+  font-size: var(--fs-20);
+}
+
+.match-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s4);
+}
+
+.match-grid h2,
+.match-page h2 {
+  font-size: var(--fs-20);
+  margin: 0 0 var(--s3);
+}
+
+.match-page label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin-top: var(--s3);
+  color: var(--ink-3);
+  font-size: var(--fs-13);
+}
+
+.match-page input,
+.match-page textarea {
+  border: 1px solid var(--line-2);
+  background: var(--inset);
+  color: var(--ink);
+  border-radius: var(--r-sm);
+  padding: var(--s2) var(--s3);
+  font: inherit;
+}
+
+.match-page textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.match-steps {
+  margin: var(--s4) 0 0;
+  padding-left: 1.2rem;
+  color: var(--ink-2);
+  font-size: var(--fs-15);
+}
+
+.match-steps li + li {
+  margin-top: var(--s2);
+}
+
+.match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--s4);
+}
+
+.match-offers {
+  list-style: none;
+  padding: 0;
+  margin: var(--s3) 0 0;
+}
+
+.match-offers li {
+  display: grid;
+  grid-template-columns: 4rem 1fr 1fr 1fr;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.match-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s4) var(--gutter);
+}
+
+.match-nav a[aria-current="page"] {
+  color: var(--ink);
+}
+
+.match-fields {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+}
+
+@media (max-width: 800px) {
+  .match-grid,
+  .match-quote dl,
+  .match-fields,
+  .match-offers li {
+    grid-template-columns: 1fr;
+  }
+}

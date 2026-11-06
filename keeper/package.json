@@ -5,7 +5,11 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "demo": "tsx src/demo.ts",
-    "watch": "tsx src/watch.ts"
+    "watch": "tsx src/watch.ts",
+    "elysp-count": "tsx src/elysp-count.ts",
+    "match-watch": "tsx src/match-watch.ts",
+    "match-execute": "tsx src/match-execute.ts",
+    "pilot-gate": "tsx src/pilot-gate.ts"
   },
   "dependencies": {
     "viem": "^2.38.3"

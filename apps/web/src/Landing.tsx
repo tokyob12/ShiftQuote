@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react
 import { Mark } from "./Logo";
 import { decisionOrder, decisions, PositionDiagram, StateTrack, type Decision } from "./PositionStates";
 import { useInView, usePath, useReducedMotion } from "./router";
-import { deskPath, SiteFooter, SiteHeader, TestnetNote } from "./site";
+import { deskPath, matchPath, SiteFooter, SiteHeader, TestnetNote } from "./site";
 
 const headline = "Keep the Elysium quote from becoming the stale side.";
 const CYCLE_MS = 4200;
@@ -78,8 +78,8 @@ export function Landing() {
               <a className="btn primary" href={deskPath}>
                 Open the desk
               </a>
-              <a className="btn quiet" href="/docs">
-                Read the docs
+              <a className="btn quiet" href={matchPath}>
+                Match HYPE
               </a>
             </div>
           </div>
@@ -108,6 +108,26 @@ export function Landing() {
             ))}
           </div>
           <TestnetNote text="The desk keeps the submitted position on a scripted book, and a second position that marks WHYPE against the live HYPE book. Both legs stay in the contract. This is not an order on HyperCore." />
+        </section>
+
+        <section className="decisions-section" aria-labelledby="match-title">
+          <p className="section-label" id="match-title">
+            Match
+          </p>
+          <article className="decision in">
+            <div className="decision-top">
+              <h2>Exit mUSDC for HYPE</h2>
+            </div>
+            <p>
+              Match is a second path on testnet. An exit wallet pays mUSDC on Elysium. A community LP supplies the WHYPE. A depositor locks native HYPE on HyperEVM. The quote shows what each side receives before anyone signs.
+            </p>
+            <p>
+              mUSDC is a mock. The HYPE and the WHYPE stay in the Match contracts until claim and settlement. A claimed HyperEVM lock is not an unconditional refund on Elysium.
+            </p>
+            <a className="btn quiet" href={matchPath}>
+              Match HYPE
+            </a>
+          </article>
         </section>
 
         <section className="closing">

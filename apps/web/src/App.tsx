@@ -309,6 +309,7 @@ export function App() {
         <span className="chain">{elysiumTestnet.id}</span>
         <p className="sub">Submitted position and a live WHYPE quote.</p>
         <nav className="desk-nav" aria-label="Site">
+          <a href="/match">Match</a>
           <a href="/docs">Docs</a>
         </nav>
         <button className={account ? "connect on" : "connect primary"} type="button" onClick={() => void connect()}>

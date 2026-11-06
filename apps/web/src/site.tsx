@@ -3,11 +3,17 @@ import { Logo } from "./Logo";
 export const githubUrl = "https://github.com/tokyob12/ShiftQuote";
 export const xUrl = "https://x.com/shift_hl";
 export const deskPath = "/desk";
+export const matchPath = "/match";
+
+// Pilot gate. Match stays off the homepage until keeper/src/pilot-gate.ts passes.
+export const matchIsHome = false;
 
 export const testnetLine =
   "The HyperCore leg is scripted on testnet. Tokens stay in the contract. This is not an order on HyperCore.";
 
 const siteLinks = [
+  { href: deskPath, label: "Desk" },
+  { href: matchPath, label: "Match" },
   { href: "/docs", label: "Docs" },
   { href: "/docs/how-it-works", label: "How it works" },
   { href: "/docs/why-shift", label: "Why Shift" },
