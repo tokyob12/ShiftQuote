@@ -113,11 +113,39 @@
 }
 
 .match-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--s4);
-  padding: var(--s4) var(--gutter);
+  gap: var(--s3) var(--s4);
+  min-height: var(--header);
+  padding: calc(var(--s2) + env(safe-area-inset-top)) var(--gutter) var(--s2);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 #efe7d60d;
+}
+
+.match-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-left: auto;
+}
+
+.match-nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s3);
+  color: var(--ink-3);
+  font-size: var(--fs-15);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .match-nav a[aria-current="page"] {
