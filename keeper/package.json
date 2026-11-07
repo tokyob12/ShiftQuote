@@ -14,7 +14,11 @@
     "test:pricing": "tsx src/match-pricing.test.ts",
     "test:browser": "tsx src/match-browser.ts",
     "test:e2e": "tsx src/match-e2e.ts",
-    "match-record": "tsx src/match-record.ts"
+    "match-record": "tsx src/match-record.ts",
+    "route-book": "tsx src/route-server.ts",
+    "test:routes": "tsx --test src/route-book.test.ts",
+    "test:signed-desk": "tsx src/signed-desk-e2e.ts",
+    "deploy:signed-desk": "tsx src/signed-desk-deploy.ts"
   },
   "dependencies": {
     "viem": "^2.38.3",

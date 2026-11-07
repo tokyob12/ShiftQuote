@@ -121,7 +121,7 @@ async function main() {
     console.log("nothing to post: deploy v2 to write deployments/v2.json, or set SHIFT_POST_ETH");
     return;
   }
-  const key = process.env.SHIFT_PRIVATE_KEY;
+  const key = process.env.SHIFT_KEEPER_MODE === "offchain" ? undefined : process.env.SHIFT_PRIVATE_KEY;
   const account = key ? privateKeyToAccount(key.startsWith("0x") ? (key as `0x${string}`) : `0x${key}`) : null;
   const wallet = account
     ? createWalletClient({ account, chain: elysiumTestnet, transport: http(rpcUrl) })

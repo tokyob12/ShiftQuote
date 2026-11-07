@@ -143,12 +143,21 @@ function shortError(error: unknown): string {
   return (details ?? error.message.split("\n")[0]).slice(0, 200);
 }
 
+async function signedChecks():Promise<Check[]>{
+ const [healthResponse,marketResponse]=await Promise.all([
+ fetch((process.env.SHIFT_ROUTE_URL??"http://127.0.0.1:8787")+"/route-api/health",{signal:AbortSignal.timeout(8000)}),
+ fetch("https://api.hyperliquid.xyz/info",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:"l2Book",coin:"@107"}),signal:AbortSignal.timeout(8000)})]);
+ if(!healthResponse.ok||!marketResponse.ok)throw Error("Signed quote service or market source unavailable");
+ const health=await healthResponse.json(),market=await marketResponse.json();
+ return [{key:"quote_service",ok:health.ok===true&&health.signedQuotes===true,message:"Shift watch: signed quote service is not enabled"},{key:"market",ok:Number.isFinite(market.time)&&Date.now()-market.time<=15000&&market.time<=Date.now()+1000,message:"Shift watch: HyperCore reference is stale"}];
+}
+
 async function main() {
   const state = loadState();
   const now = Date.now();
   let checks: Check[];
   try {
-    checks = await runChecks();
+    checks = process.env.SHIFT_KEEPER_MODE === "offchain" ? await signedChecks() : await runChecks();
   } catch (error) {
     const fails = (state.rpc?.fails ?? 0) + 1;
     state.rpc = { ok: state.rpc?.ok ?? true, alertedAt: state.rpc?.alertedAt ?? 0, fails };

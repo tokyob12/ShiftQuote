@@ -105,7 +105,7 @@ contract PositionV2 {
     }
 
     /// @dev First deposit reads the book and starts Quoted at that mid.
-    function deposit(uint256 baseAmount, uint256 quoteAmount) external onlyOwner {
+    function deposit(uint256 baseAmount, uint256 quoteAmount) public virtual onlyOwner {
         if (baseAmount == 0 && quoteAmount == 0) revert ZeroAmount();
         if (location != Location.Uninitialized && location != Location.Quoted && location != Location.Pulled) {
             revert BadLocation();
@@ -119,7 +119,7 @@ contract PositionV2 {
             elysiumQuote += quoteAmount;
         }
         if (location == Location.Uninitialized) {
-            IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+            IHyperCoreBook.Snapshot memory snap = _read(elysiumBase);
             if (snap.midX18 == 0) revert ZeroAmount();
             quotedMidX18 = snap.midX18;
             location = Location.Quoted;
@@ -146,7 +146,7 @@ contract PositionV2 {
     }
 
     /// @notice Reprices between Quoted and Pulled. Other locations revert.
-    function evaluate() external returns (Decision decision) {
+    function evaluate() public virtual returns (Decision decision) {
         if (location != Location.Quoted && location != Location.Pulled) revert BadLocation();
         (decision,) = _evaluate();
     }
@@ -156,9 +156,9 @@ contract PositionV2 {
     ///         settles more than 50 bps away, evaluate keeps answering Pull. This
     ///         is the explicit way out. It reverts unless the location is Pulled,
     ///         and when snapshot slippage is above 50 bps. A stale read reverts.
-    function requote() external onlyOwner returns (uint256 midX18) {
+    function requote() public virtual onlyOwner returns (uint256 midX18) {
         if (location != Location.Pulled) revert BadLocation();
-        IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+        IHyperCoreBook.Snapshot memory snap = _read(elysiumBase);
         if (snap.midX18 == 0) revert ZeroAmount();
         if (snap.slippageBps > BAND_BPS) revert Slippage();
         uint256 previous = quotedMidX18;
@@ -178,7 +178,7 @@ contract PositionV2 {
         if (location != Location.Quoted && location != Location.Pulled) {
             return (lastDecision, quotedMidX18, 0, 0);
         }
-        IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+        IHyperCoreBook.Snapshot memory snap = _read(elysiumBase);
         return (_decide(snap), snap.midX18, snap.slippageBps, snap.timestamp);
     }
 
@@ -187,7 +187,7 @@ contract PositionV2 {
     ///         that mid. On Pull the whole call reverts and the location is
     ///         left unchanged. `evaluate` is what records Pull. `maxUsdcIn`
     ///         caps what the buyer pays.
-    function swap(uint256 baseOut, uint256 maxUsdcIn) external returns (bool filled) {
+    function swap(uint256 baseOut, uint256 maxUsdcIn) public virtual returns (bool filled) {
         if (!swapsOpen) revert SwapsClosed();
         if (location != Location.Quoted) revert BadLocation();
         if (baseOut == 0 || baseOut > elysiumBase) revert ZeroAmount();
@@ -205,10 +205,10 @@ contract PositionV2 {
     }
 
     /// @notice Moves 25% of the Elysium base onto the in-transit ledger.
-    function shift() external onlyOwner {
+    function shift() public virtual onlyOwner {
         if (!spotLinked) revert SpotNotLinked();
         if (location != Location.Quoted && location != Location.Pulled) revert BadLocation();
-        IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+        IHyperCoreBook.Snapshot memory snap = _read(elysiumBase);
         if (snap.slippageBps > BAND_BPS) revert Slippage();
         uint256 slice = elysiumBase * MAX_SLICE_BPS / BPS;
         if (slice == 0) revert ZeroAmount();
@@ -251,7 +251,7 @@ contract PositionV2 {
     }
 
     function _evaluate() internal returns (Decision decision, uint256 midX18) {
-        IHyperCoreBook.Snapshot memory snap = reader.read(elysiumBase);
+        IHyperCoreBook.Snapshot memory snap = _read(elysiumBase);
         decision = _decide(snap);
         midX18 = snap.midX18;
         if (decision == Decision.Pull) {
@@ -288,5 +288,8 @@ contract PositionV2 {
     function _push(address token, address to, uint256 amount) internal {
         (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, amount));
         if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
+    }
+    function _read(uint256 size) internal view virtual returns (IHyperCoreBook.Snapshot memory) {
+        return reader.read(size);
     }
 }

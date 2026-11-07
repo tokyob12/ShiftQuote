@@ -19,3 +19,6 @@ keeper/.match-dest-index.json
 keeper/.match-browser-recovery.json
 
 keeper/.match-*.tmp
+
+keeper/.route-book.json
+keeper/.route-book.json.tmp

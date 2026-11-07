@@ -822,3 +822,6 @@
 
   .metric strong { font-size: var(--fs-17); }
 }
+
+.signed-desk .card-head{flex-wrap:wrap}
+@media(max-width:390px){.desk-header{gap:8px;flex-wrap:wrap}.signed-desk-fields label{min-width:min(200px,100%)}}

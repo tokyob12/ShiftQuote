@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      "/route-api": { target: "http://127.0.0.1:8787", changeOrigin: true },
       "/hl": {
         target: "https://api.hyperliquid.xyz",
         changeOrigin: true,

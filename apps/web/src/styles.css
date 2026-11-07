@@ -1401,3 +1401,5 @@ label {
 }
 
 .docs-body { overflow-wrap: anywhere; min-width: 0; }
+
+.signed-desk{margin-bottom:32px}.signed-desk .hint{overflow-wrap:anywhere;margin:14px 0}.signed-desk fieldset{border:0;padding:0;min-width:0}.signed-desk-fields{display:flex;flex-wrap:wrap;gap:16px;margin:20px 0}.signed-desk-fields label{display:grid;gap:8px;flex:1;min-width:200px;font-size:13px}.signed-desk input{width:100%;border:1px solid var(--line-2);padding:12px;background:var(--inset);border-radius:8px}.signed-desk .actions{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}.signed-desk .btn{white-space:normal}.signed-desk .metrics{flex-wrap:wrap}

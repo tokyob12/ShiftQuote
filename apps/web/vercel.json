@@ -1,6 +1,16 @@
 {
   "rewrites": [
-    { "source": "/hl/:path*", "destination": "https://api.hyperliquid.xyz/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/route-api/:path*",
+      "destination": "https://routes.shifthl.xyz/route-api/:path*"
+    },
+    {
+      "source": "/hl/:path*",
+      "destination": "https://api.hyperliquid.xyz/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

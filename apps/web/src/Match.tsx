@@ -17,6 +17,8 @@ import {
   type Hex,
   type PublicClient,
 } from "viem";
+import { RouteMarket } from "./RouteMarket";
+import { routeMessage, type Route, type Card, type Auth } from "./routeQuote";
 import { faucetAbi } from "./abi";
 import { elysiumTestnet, hyperEvmTestnet, rpcUrl } from "./chain";
 import { Logo } from "./Logo";
@@ -160,7 +162,7 @@ function readStored(): StoredQuote | null {
 
 const elysium = createPublicClient({
   chain: elysiumTestnet,
-  transport: http(rpcUrl, { batch: { wait: 30, batchSize: 20 } }),
+  transport: http(rpcUrl, { batch: { wait: 40, batchSize: 20 }, retryDelay: 2000, retryCount: 5 }),
 });
 const hyper = createPublicClient({
   chain: hyperEvmTestnet,
@@ -238,7 +240,7 @@ export function Match() {
     if (nextPosition && isAddress(nextPosition)) setPosition(nextPosition);
     if (!parsed) return;
     setQuoteCard(JSON.stringify(parsed, null, 2));
-    if (parsed.signature) setQuoteSig(parsed.signature);
+    setQuoteSig(parsed.signature || "");
     if (parsed.fillId)
       setSecret(sessionStorage.getItem("shift-secret:" + parsed.fillId) || "");
     if (parsed.input?.whype)
@@ -264,7 +266,7 @@ export function Match() {
       })
       .then(setAvailable)
       .catch(() => setAvailable(null));
-  }, [deployed, position, status]);
+  }, [deployed, position]);
 
   useEffect(() => {
     if (!deployed || !isAddress(position) || !path.endsWith("/lp")) return;
@@ -300,12 +302,12 @@ export function Match() {
       }
     };
     void refresh();
-    const timer = setInterval(() => void refresh(), 10000);
+    const timer = setInterval(() => void refresh(), 30000);
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, [deployed, position, status, path]);
+  }, [deployed, position, path]);
 
   useEffect(()=>{
     const encoded=new URLSearchParams(location.hash.slice(1)).get("quote");
@@ -437,27 +439,30 @@ export function Match() {
     );
   }
 
-  async function prepareRequest() {
+  async function prepareRequest(route?:Route) {
     const client = await connect(elysiumTestnet);
     const account = client?.account?.address;
-    if (!account || !isAddress(position)) return;
+    if (!account || !isAddress(position)) throw new Error("Connect an exit wallet and select an LP position.");
+    if(route&&account.toLowerCase()!==route.exit.toLowerCase())throw new Error("Connect the exit wallet that requested this route.");
+    const selectedPosition=route?.position??position;
     const nonce = await elysium.readContract({
-      address: position,
+      address: selectedPosition,
       abi: positionAbi,
       functionName: "quoteNonce",
     });
     const made = freshSecret();
     const input = buildInput(account, nonce);
+    if(route&&input){input.depositor=route.depositor;input.usdc=BigInt(route.usdc);input.whype=BigInt(route.whype);input.gasElysium=0n;input.gasHyper=0n;}
     if (!input || !isAddress(input.depositor))
       throw new Error("Enter the depositor address.");
-    if(!manualQuote){
+    if(!manualQuote&&!route){
       const response=await fetch("/hl/info",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:"l2Book",coin:"@107"})});
       if(!response.ok)throw new Error("Market reference is unavailable. Try again shortly.");
       const book=await response.json();
       input.whype=baseForBudget(book.levels[1],input.usdc,book.time);
       setWhypeText(formatEther(input.whype));
     }
-    const capacity=await elysium.readContract({address:position,abi:positionAbi,functionName:"available"});
+    const capacity=await elysium.readContract({address:selectedPosition,abi:positionAbi,functionName:"available"});
     if(input.whype>capacity)throw new Error("This LP has insufficient available HYPE. Choose another position or a smaller amount.");
     input.secretHash = made.secretHash;
     input.expectedBonus = await elysium.readContract({
@@ -470,13 +475,13 @@ export function Match() {
       address: matchDeployments.sourceMatch,
       abi: sourceAbi,
       functionName: "hashFill",
-      args: [position, account, input],
+      args: [selectedPosition, account, input],
     });
     sessionStorage.setItem("shift-secret:" + id, made.secret);
     setSecret(made.secret);
     const card: StoredQuote = {
       version: 2,
-      position,
+      position:selectedPosition,
       fillId: id,
       input: Object.fromEntries(
         Object.entries(input).map(([k, v]) => [k, String(v)]),
@@ -486,6 +491,7 @@ export function Match() {
     setStatus(
       "Request ready. Save your private recovery secret, then share only the public request with the LP.",
     );
+    return card as Card;
   }
 
   async function signQuote() {
@@ -728,7 +734,7 @@ export function Match() {
     localStorage.setItem("shift-match-history",JSON.stringify(next));
     setHistoryCards(next);
 
-    if (parsed.signature) setQuoteSig(parsed.signature);
+    setQuoteSig(parsed.signature || "");
     if (parsed.fillId)
       setSecret(sessionStorage.getItem("shift-secret:" + parsed.fillId) || "");
     if (parsed.input?.whype)
@@ -1026,7 +1032,7 @@ export function Match() {
     setStatus(`${kind} confirmed.`);
   }
 
-  async function run(action: () => Promise<void>) {
+  async function run(action: () => Promise<unknown>) {
     if(busy)return;
     setBusy(true);
     try {
@@ -1065,6 +1071,11 @@ export function Match() {
             <h1>{panel==="exit"?"Exit to HyperEVM":panel==="deposit"?"Enter Elysium":panel==="lp"?"Provide liquidity":"Recover or finish a trade"}</h1>
             <p>{panel==="exit"?"Pay mUSDC on Elysium. Receive HYPE on HyperEVM.":panel==="deposit"?"Send HYPE on HyperEVM and receive HYPE on Elysium from a matched exit.":panel==="lp"?"Supply WHYPE from your own position. Settled fills pay you USDC and the quoted LP bonus.":"Import your public request to check what is funded, claimed or ready to refund."}</p>
           </div>
+          {panel!=="recovery"?<RouteMarket role={panel} usdc={usdcText} locked={!!quoteSig||progress.source===1} setBudget={setUsdcText} position={position} fillId={fillId}
+            authorize={async(action,payload)=>{const client=await connect(elysiumTestnet);if(!client?.account)throw new Error("Connect your wallet first.");const auth:Auth={owner:client.account.address,nonce:crypto.randomUUID(),expires:Math.floor(Date.now()/1000)+180};const signature=await client.signMessage({account:client.account,message:routeMessage(matchDeployments.sourceMatch,action,payload,auth)});return {auth,signature};}}
+            prepare={async route=>prepareRequest(route)}
+            approve={async card=>{rememberQuote(JSON.stringify(card));await signQuote();const signed=readStored();if(!signed?.signature)throw new Error("LP signature required.");return signed as Card;}}
+            load={card=>rememberQuote(JSON.stringify(card))}/>:null}
           <div className="match-layout">
             <div className="match-main-card" aria-busy={busy}><fieldset disabled={busy}>
               <div className="match-step-track" aria-label="Trade progress">
@@ -1126,6 +1137,7 @@ export function Match() {
                 <p className="match-explain">Refunds return assets after their signed deadlines. A claimed HyperEVM payment requires the Elysium leg to settle within its time window.</p>
                 <div className="match-actions"><button className="btn" type="button" disabled={progress.source!==1} onClick={()=>void run(()=>settleOrRefund("settle"))}>Finish Elysium settlement</button><button className="btn" type="button" disabled={progress.source!==1||now<Number(readStored()?.input?.refundAfter??Infinity)} onClick={()=>void run(()=>settleOrRefund("refund"))}>Refund Elysium assets</button><button className="btn" type="button" disabled={progress.dest!==1||now<Number(readStored()?.input?.claimBefore??Infinity)} onClick={()=>void run(()=>hyperMove("refund"))}>Refund HyperEVM lock</button><button className="btn" type="button" onClick={()=>void run(()=>hyperMove("take"))}>Withdraw HyperEVM credit</button><button className="btn" type="button" onClick={()=>void run(collectSourceCredit)}>Collect Elysium HYPE</button></div>
               </>:null}
+              {progress.source===2||progress.source===3?<button type="button" className="btn" onClick={()=>{localStorage.removeItem("shift-match-quote");setQuoteSig("");setFillId("");setQuoteCard("");setSecret("");setProgress({source:0,dest:0,credit:0n});setStatus("Ready for a new trade. Previous public requests remain in history.");}}>Start a new trade</button>:null}
               <p className="match-status" role="status" aria-live="polite">{status}</p>
               <details className="match-detail" open={!fillId&&panel!=="exit"}><summary>Share or import a public request</summary>
                 <p>Public links and quote cards contain trade terms and signatures. Keep the recovery secret private.</p>

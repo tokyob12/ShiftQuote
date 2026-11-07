@@ -111,3 +111,7 @@ The explorer runs Blockscout and needs no API key. `contracts/script/verify.sh` 
 DRY_RUN=1 contracts/script/verify.sh
 contracts/script/verify.sh
 ```
+
+## Automatic route discovery
+
+The Match pages include an off-chain Route Quote book: incoming offers, LP price/size policies, best-compatible single-LP search, and participant inboxes for quote approval and funded trades. Run `npm run route-book` in `keeper` alongside Vite for local discovery. LP approvals and escrow wallet confirmations remain explicit. No compatible offer means funds remain in the user's wallet. See `ROUTE-QUOTE-PLAN.md` and the Route Quote section in `TESTNET-DEPLOYMENT.md` for setup, deployment and scope.

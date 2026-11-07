@@ -12,6 +12,7 @@ import { bookAbi, erc20Abi, faucetAbi, positionAbi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Ladder, Route, statusTone, Ticker } from "./DeskParts";
+import { SignedDesk } from "./SignedDeskPanel";
 import { LivePosition } from "./LivePosition";
 import { Logo } from "./Logo";
 import { TestnetNote } from "./site";
@@ -320,6 +321,9 @@ export function App() {
       <main>
         {!deployed && <p className="notice">Contracts are not deployed yet. The ETH book below is still live.</p>}
         <TestnetNote text="Two positions. The submitted one reads a scripted book. The live one marks WHYPE against the HYPE book. On both, the HyperCore leg is scripted. Tokens stay in the contract. This is not an order on HyperCore." />
+
+        <h2 className="desk-section">Signed quotes</h2>
+        <SignedDesk account={account} />
 
         <h2 className="desk-section">Live</h2>
         <LivePosition account={account} onStatus={setStatus} />

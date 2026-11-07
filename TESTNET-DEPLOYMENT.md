@@ -89,3 +89,61 @@ Production rollout requires independent settlement review, production token veri
 - All 18 app/documentation routes passed desktop/mobile overflow checks.
 
 Public frontend publishing and installation of the always-on executor/watcher are Cursor deployment steps, as requested. Local checks do not confirm the production host has been updated.
+
+## Route Quote + automatic matching (7 November 2026)
+
+The Match app now has a shared off-chain order book. LPs publish a 30-minute size/price policy, incoming depositors publish maximum payment and minimum receive ratio, and exits search with their USDC budget and minimum HyperEVM receipt. The service ranks compatible single-LP routes by exit receipt and checks live source inventory, signer, pause/limits and destination balance before selection. LPs still sign the complete existing v2 fill, and both users confirm the existing escrow transactions. Offers are indicative, not spending approvals or custody.
+
+Run `npm run route-book` in `keeper`. Local Vite proxies `/route-api` to `127.0.0.1:8787`. Production `apps/web/vercel.json` expects `https://routes.shifthl.xyz/route-api`; provision that HTTPS hostname on the Oracle server or replace the rewrite with the actual service hostname before publishing. Until the service is reachable, the UI reports discovery offline and keeps manual matching available.
+
+Install `keeper/deploy/shift-route-book.service`, adapting the user and paths to the existing Oracle host. Put this configuration in `/etc/shift/route-book.env`:
+
+```dotenv
+SHIFT_ROUTE_HOST=127.0.0.1
+SHIFT_ROUTE_PORT=8787
+SHIFT_ROUTE_DATA=/var/lib/shift/route-book.json
+SHIFT_RPC_URL=<Elysium testnet provider>
+SHIFT_MATCH_HYPER_RPC=https://rpc.hyperliquid-testnet.xyz/evm
+SHIFT_ROUTE_ORIGINS=https://shifthl.xyz,https://www.shifthl.xyz
+```
+
+Create `/var/lib/shift` owned by the service user, with mode 0700. The service writes one JSON database atomically and runs as a single process; keep persistent backups and do not run multiple writers. No wallet key is needed. Serve the process through the existing HTTPS reverse proxy:
+
+```nginx
+location /route-api/ {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_set_header Host $host;
+    proxy_read_timeout 120s;
+    client_max_body_size 24k;
+}
+```
+
+Health: `GET /route-api/health`. Discovery: `GET /route-api/book`. Wallet-authorized mutation: `POST /route-api/action`. Signatures bind action, canonical payload hash, wallet, nonce, expiry, source deployment and chain 99801. Accepted mutation nonces persist across restarts. Public requests contain hashes and terms; private recovery secrets never belong in this API.
+
+A route holds an LP position and incoming wallet exclusively within this service. An unpublished hold expires after two minutes. A published request stays held through the full on-chain quote lifetime plus a one-minute buffer. Chain-funded routes stay held until actual source settlement/refund; RPC failure does not release capacity. This coordinates the local book and cannot prevent a participant trading elsewhere or spending its advertised balance. Source contracts remain the authority for actual inventory locks.
+
+The first release publishes zero gas allowances. Each user pays its own wallet transaction gas, and the executor's gas is not reimbursed by these route quotes. This feature adds no periodic on-chain writes. Exact gas reimbursement and unattended quote signing are separate work; do not advertise this pilot as fully automatic settlement or zero-cost operation.
+
+Check `npm run test:routes`, keeper typecheck, web build, and `npm run test:browser -- --live --routes` with the local test-wallet environment loaded. The last command spends small amounts of test HYPE and signs with the existing submitted LP wallet. Use only the testnet deployment. Existing escrow contracts, original submitted wallet and Desk demo are unchanged.
+
+## Signed Desk: removing periodic keeper gas
+
+`deployments/signed-desk.json` records the separate SignedPosition testnet deployment, with the original submitted wallet as owner and quote signer. Existing Desk contracts are not upgraded. PositionV2's source adds a virtual snapshot hook so SignedPosition reuses Stay/Pull, owner withdrawals and the scripted Shift ledger; deployed old bytecode is unaffected.
+
+The `/desk` page includes Signed Desk controls. `POST /route-api/desk-quote` generates an on-demand EIP-712 quote from the HyperCore HYPE book. Quotes bind the requesting caller, action, exact size, price/slippage snapshot, contract, chain, signer epoch and unique nonce. Observed timestamp and validity are limited to 15 seconds; the contract rejects expired/replayed quotes and unsigned entry points. Quotes still trust the authorized price signer and require independent review before production.
+
+For signed quote service, add `SHIFT_QUOTE_KEY` to the restricted route-book environment file. It must match the SignedPosition's `quoteSigner`. Use a separate quote-only signer for production and rotate it via the owner's `setQuoteSigner`; this also advances the epoch and invalidates old quotes. The testnet deployment currently uses the submitted wallet as explicitly requested. Never put this key in the frontend or public deployment configuration.
+
+Set `SHIFT_KEEPER_MODE=offchain` on the legacy keeper and watcher only as part of an explicit cutover. In this mode the keeper sends no snapshot or evaluate transactions. Its old polling loop fetches market data only; it may also be stopped when only the on-demand route-book service is used. The watcher checks the quote-service health and HyperCore timestamp instead of requiring a posted snapshot or a funded legacy keeper. Set `SHIFT_ROUTE_URL=http://127.0.0.1:8787` for the watcher.
+
+**Cutover order:** publish and verify the signed service; seed the separate signed position and verify signed swaps; use the original owner to close swaps on the legacy live-book position; migrate only unreserved Elysium inventory if intended; then switch/stop its posting keeper. Do not stop the old feed while advertising the old live position as active. The submitted scripted Desk demo remains independent.
+
+This removes recurring keeper price-posting gas, not transaction gas. LP deposits/withdrawals, evaluate/requote/Shift actions, swaps, Match funding and settlement still cost gas. Off-chain discovery and quote signatures cost no chain gas. Neither change guarantees the shared RPC will never rate-limit; service reads are paced and a dedicated provider is recommended.
+
+### Verified integration evidence
+
+`deployments/route-browser-evidence.json` records the real browser flow through signed offer posting, automatic selection, LP inbox approval, Elysium funding, HyperEVM lock/claim and Elysium settlement. No public quote contained a recovery secret. `deployments/signed-desk-evidence.json` records actual signed seeding and a signed swap, exact WHYPE receipt and rejected replay simulation. The swap used 237,366 testnet gas units; this is not a prediction of mainnet dollar fees. Nine route-book regression tests, ten pricing assertions and all 93 contract test executions passed.
+
+For local browser acceptance against a stable build, use `npm run preview -- --host 127.0.0.1 --port 5181` in `apps/web`, then `SHIFT_BROWSER_URL=http://127.0.0.1:5181 npm run test:browser -- --live --routes` in `keeper`. The live route test and the all-route smoke test are separate commands; the route test skips broad navigation so it does not flood the public RPC before wallet actions. Local 5181 is allowed by default; production should explicitly set its permitted origins.
+
+`npm run test:signed-desk` runs the actual signed Desk trial with the ignored test-wallet file and submitted owner. It wraps 0.005 test HYPE and buys 0.001 WHYPE. It requires the local quote API configured with its signer. `npm run deploy:signed-desk` is a deliberate future redeployment command; routine publishing reuses current addresses.

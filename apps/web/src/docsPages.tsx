@@ -64,7 +64,11 @@ function Home() {
           individual position and receive USDC plus the accepted bonus.
         </li>
       </ul>
-      <h2>Start with a coordinated trial</h2>
+      <h2>Find a route automatically</h2>
+      <p>LPs publish a price and size, while incoming depositors publish their maximum payment and minimum receive ratio. In Match, enter a USDC budget and minimum HYPE receipt, then choose Find a route. The shared book selects compatible participants after live balance and inventory checks. The LP reviews the full request in its inbox; the exit funds it and the depositor opens the funded trade to confirm its lock. If no compatible offers exist, funds stay in your wallet. Refresh and search again as offers arrive.</p>
+      <h2>Signed Desk price updates</h2>
+      <p>The separate Signed Desk uses per-action EIP-712 snapshots valid for 15 seconds instead of periodic keeper transactions. Caller, action, size, deployment, chain, signer epoch and one-use nonce are bound by the signature. The original submitted Desk and legacy live-book position remain available. Signed snapshots still trust the authorized price signer. Swaps, LP management and Match settlement continue to cost transaction gas.</p>
+      <h2>Manual coordinated trial</h2>
       <p>
         Arrange an LP and incoming depositor, then prepare a public request.
         Share links between participants while keeping the exit user's recovery
@@ -216,9 +220,7 @@ function Faq() {
       </p>
       <h2>How do I find a match?</h2>
       <p>
-        This testnet release supports coordinated participants. Arrange the LP
-        and incoming wallet, prepare a request, and share its public links. The
-        app verifies funding conditions before the next leg.
+        Use the shared order book to publish LP and incoming offers, then search for a compatible route. LP approval and both wallets’ funding confirmations remain explicit. You can also coordinate manually and share a public request. An unavailable discovery service leaves manual matching accessible.
       </p>
       <h2>Can I leave while waiting?</h2>
       <p>
@@ -732,6 +734,8 @@ function Roadmap() {
         original-asset refunds, public request links, private recovery files and
         settlement monitoring. Current addresses are on the Deployment page.
       </p>
+      <h2>Route Quote and signed snapshots</h2>
+      <p>The shared order book provides single-LP discovery and participant inboxes. It advertises intent; contracts enforce actual reservations. The new Signed Desk supports off-chain snapshots and the original Stay/Pull/scripted Shift rules. Multi-LP splitting, unattended signing policies for Match and gas reimbursement for discovery quotes remain later work.</p>
       <h2>Validation</h2>
       <p>
         The 6 November 2026 test run completed actual two-chain settlement,
@@ -775,6 +779,8 @@ function MatchGuide() {
         The exit user pays test mUSDC on Elysium and receives native test HYPE
         on HyperEVM.
       </p>
+      <h2>Use Route Quote</h2>
+      <p>On the LP page, publish an expiring ask and maximum WHYPE size. On Deposit, publish an incoming offer with a maximum HyperEVM payment and minimum Elysium receive ratio. On Exit, enter your budget and minimum receipt, then find a route. Open your inbox to approve the LP quote or load a funded trade. Each participant still confirms its own wallet transactions. Search and offer signatures move no funds. The current route quotes have zero executor gas allowance; user gas is additional and the testnet executor pays its own settlement gas.</p>
       <h2>Prepare and share a request</h2>
       <p>
         Enter your USDC amount and the incoming participant's wallet. In this

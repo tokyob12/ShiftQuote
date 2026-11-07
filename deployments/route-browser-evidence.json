@@ -1,0 +1,11 @@
+{
+  "readAt": "2026-11-07T09:50:50.471Z",
+  "fillId": "0xb34d8502efb4f2dc573b3bd3d88566a1a14979c1edaaa5b68e24f5888a7b03ff",
+  "checks": [
+    "signed LP and incoming offers",
+    "automatic route selection",
+    "LP approval and participant inboxes",
+    "three-wallet UI settlement",
+    "no secret in public cards"
+  ]
+}

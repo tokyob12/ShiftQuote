@@ -1,9 +1,10 @@
 import { chromium } from "playwright-core";
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { createWalletClient, http, type Hex } from "viem";
+import { createWalletClient, http, hexToString, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { root } from "./match-runtime.ts";
 import { elysiumTestnet } from "./chain.ts";
+const baseUrl = process.env.SHIFT_BROWSER_URL ?? "http://127.0.0.1:5180";
 async function main() {
   const browser = await chromium.launch({
     headless: true,
@@ -18,21 +19,23 @@ async function main() {
     });
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(error.message));
-    for (const route of [
-      "/",
-      "/match",
-      "/match/deposit",
-      "/match/lp",
-      "/match/recovery",
-      "/docs/match",
-      ...Array.from(
-        readFileSync(root + "apps/web/src/Docs.tsx", "utf8").matchAll(
-          /href:\s*"(\/docs[^"]*)"/g,
-        ),
-        (m) => m[1],
-      ).filter((route) => route !== "/docs/match"),
-    ]) {
-      await page.goto("http://127.0.0.1:5180" + route);
+    for (const route of process.argv.includes("--routes")
+      ? []
+      : [
+          "/",
+          "/match",
+          "/match/deposit",
+          "/match/lp",
+          "/match/recovery",
+          "/docs/match",
+          ...Array.from(
+            readFileSync(root + "apps/web/src/Docs.tsx", "utf8").matchAll(
+              /href:\s*"(\/docs[^"]*)"/g,
+            ),
+            (m) => m[1],
+          ).filter((route) => route !== "/docs/match"),
+        ]) {
+      await page.goto(baseUrl + route);
       await page.getByRole("heading", { level: 1 }).waitFor();
       console.log(
         "Rendered",
@@ -86,9 +89,12 @@ async function main() {
       let chainId = 99801;
       const context = await browser.newContext();
       const page = await context.newPage();
-      page.on("response", (res) => {
-        if (res.status() >= 400)
+      page.on("response", async (res) => {
+        if (res.status() >= 400) {
           console.error("HTTP error", res.status(), res.url().split("?")[0]);
+          if (res.url().includes("/route-api/"))
+            console.error("Route API", await res.text());
+        }
       });
       page.on("requestfailed", (req) =>
         console.error(
@@ -116,6 +122,12 @@ async function main() {
               throw new Error("Only testnet chains allowed");
             chainId = next;
             return null;
+          }
+          if (req.method === "personal_sign") {
+            const raw = params[0] as Hex;
+            if (!hexToString(raw).startsWith("Shift Route Quote v1\n"))
+              throw new Error("Unexpected route signature");
+            return account.signMessage({ message: { raw } });
           }
           if (req.method === "eth_signTypedData_v4") {
             const data = JSON.parse(params[1] as string);
@@ -183,20 +195,56 @@ async function main() {
     const exit = await make(keys.exit),
       lp = await make(process.env.SHIFT_PRIVATE_KEY as Hex, true),
       deposit = await make(keys.depositor);
-    await exit.goto("http://127.0.0.1:5180/match");
-    await exit.getByText("Advanced quote settings", { exact: true }).click();
-    await exit.getByLabel("WHYPE size", { exact: true }).fill("0.001");
-    await exit.getByLabel("mUSDC", { exact: true }).fill("0.08");
-    await exit
-      .getByLabel(/Incoming participant/)
-      .fill(privateKeyToAccount(keys.depositor).address);
-    await exit
-      .getByRole("button", { name: "Request a quote", exact: true })
-      .click();
-    await exit
-      .locator(".match-status")
-      .filter({ hasText: "Request ready" })
-      .waitFor({ timeout: 30000 });
+    const automatic = process.argv.includes("--routes");
+    if (automatic) {
+      await lp.goto(baseUrl + "/match/lp");
+      await lp
+        .getByRole("button", { name: "Publish LP offer", exact: true })
+        .click();
+      await lp
+        .locator(".route-status")
+        .filter({ hasText: "Offer published" })
+        .waitFor({ timeout: 120000 });
+      await deposit.goto(baseUrl + "/match/deposit");
+      await deposit
+        .getByLabel("Maximum HYPE to pay on HyperEVM", { exact: true })
+        .fill("0.001");
+      await deposit
+        .getByRole("button", { name: "Publish incoming offer", exact: true })
+        .click();
+      await deposit
+        .locator(".route-status")
+        .filter({ hasText: "Offer published" })
+        .waitFor({ timeout: 120000 });
+    }
+    await exit.goto(baseUrl + "/match");
+    if (!automatic) {
+      await exit.getByText("Advanced quote settings", { exact: true }).click();
+      await exit.getByLabel("WHYPE size", { exact: true }).fill("0.001");
+      await exit.getByLabel("mUSDC", { exact: true }).fill("0.08");
+      await exit
+        .getByLabel(/Incoming participant/)
+        .fill(privateKeyToAccount(keys.depositor).address);
+      await exit
+        .getByRole("button", { name: "Request a quote", exact: true })
+        .click();
+      await exit
+        .locator(".match-status")
+        .filter({ hasText: "Request ready" })
+        .waitFor({ timeout: 30000 });
+    } else {
+      await exit.getByLabel("mUSDC", { exact: true }).fill("0.08");
+      await exit
+        .getByRole("button", {
+          name: "Find a route for 0.08 mUSDC",
+          exact: true,
+        })
+        .click();
+      await exit
+        .locator(".route-status")
+        .filter({ hasText: "Match found" })
+        .waitFor({ timeout: 120000 });
+    }
     await exit
       .getByText("Share or import a public request", { exact: true })
       .click();
@@ -216,20 +264,40 @@ async function main() {
     );
 
     console.log("Signing LP quote");
-    await lp.goto("http://127.0.0.1:5180/match/lp");
-    await lp.locator("textarea").fill(request);
-    await lp
-      .getByRole("button", { name: "Approve this quote", exact: true })
-      .click();
-    await lp
-      .locator(".match-status")
-      .filter({ hasText: "All fill terms signed" })
-      .waitFor({ timeout: 120000 });
+    if (automatic) {
+      await lp
+        .getByRole("button", { name: "Refresh offers", exact: true })
+        .click();
+      await lp
+        .getByRole("button", {
+          name: "Review and sign this route",
+          exact: true,
+        })
+        .click();
+      await lp
+        .locator(".route-status")
+        .filter({ hasText: "Quote approved" })
+        .waitFor({ timeout: 120000 });
+    } else {
+      await lp.goto(baseUrl + "/match/lp");
+      await lp.locator("textarea").fill(request);
+      await lp
+        .getByRole("button", { name: "Approve this quote", exact: true })
+        .click();
+      await lp
+        .locator(".match-status")
+        .filter({ hasText: "All fill terms signed" })
+        .waitFor({ timeout: 120000 });
+    }
     const signed = await lp.locator("textarea").inputValue();
     if ("secret" in JSON.parse(signed))
       throw new Error("Secret leaked in signed card");
     console.log("Funding source");
-    await exit.locator("textarea").fill(signed);
+    if (automatic) {
+      await exit
+        .getByRole("button", { name: "Refresh offers", exact: true })
+        .click();
+    } else await exit.locator("textarea").fill(signed);
     await exit
       .getByRole("button", { name: "Reserve USDC for this trade", exact: true })
       .click();
@@ -238,8 +306,17 @@ async function main() {
       .filter({ hasText: "Funded in" })
       .waitFor({ timeout: 120000 });
     console.log("Locking destination");
-    await deposit.goto("http://127.0.0.1:5180/match/deposit");
-    await deposit.locator("textarea").fill(signed);
+    if (automatic) {
+      await deposit
+        .getByRole("button", { name: "Refresh offers", exact: true })
+        .click();
+      await deposit
+        .getByRole("button", { name: "Open this trade", exact: true })
+        .click();
+    } else {
+      await deposit.goto(baseUrl + "/match/deposit");
+      await deposit.locator("textarea").fill(signed);
+    }
     await deposit
       .getByRole("button", { name: /Lock .* HYPE on HyperEVM/, exact: true })
       .click();
@@ -257,7 +334,7 @@ async function main() {
       .filter({ hasText: "Credited HYPE was sent" })
       .waitFor({ timeout: 120000 });
     console.log("Settling source");
-    await exit.goto("http://127.0.0.1:5180/match/recovery");
+    await exit.goto(baseUrl + "/match/recovery");
     await exit
       .getByRole("button", { name: "Finish Elysium settlement", exact: true })
       .click();
@@ -267,14 +344,25 @@ async function main() {
       .waitFor({ timeout: 120000 });
     if (errors.length) throw new Error(errors.join("; "));
     writeFileSync(
-      root + "deployments/browser-evidence.json",
+      root +
+        (automatic
+          ? "deployments/route-browser-evidence.json"
+          : "deployments/browser-evidence.json"),
       JSON.stringify(
         {
           readAt: new Date().toISOString(),
           fillId: JSON.parse(signed).fillId,
           checks: [
-            "all documentation and primary app routes",
-            "desktop and mobile",
+            ...(automatic
+              ? [
+                  "signed LP and incoming offers",
+                  "automatic route selection",
+                  "LP approval and participant inboxes",
+                ]
+              : [
+                  "all documentation and primary app routes",
+                  "desktop and mobile",
+                ]),
             "three-wallet UI settlement",
             "no secret in public cards",
           ],
@@ -294,6 +382,11 @@ async function main() {
           .textContent({ timeout: 1000 })
           .catch(() => null);
         if (status) console.error("UI status", status);
+        const routeStatus = await page
+          .locator(".route-status")
+          .textContent({ timeout: 1000 })
+          .catch(() => null);
+        if (routeStatus) console.error("Route status", routeStatus);
       }
     throw error;
   } finally {
