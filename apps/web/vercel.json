@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/route-api/:path*",
-      "destination": "https://robertson-lighting-weighted-tuning.trycloudflare.com/route-api/:path*"
+      "destination": "https://routes.shifthl.xyz/route-api/:path*"
     },
     {
       "source": "/hl/:path*",
