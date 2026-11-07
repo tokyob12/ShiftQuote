@@ -244,6 +244,7 @@ async function main() {
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, JSON.stringify(report, null, 2));
   for (const side of sides) {
+    if (!side) continue;
     if ("error" in side) {
       console.log(`${side.chain} ${side.version}: ${side.error}`);
       continue;

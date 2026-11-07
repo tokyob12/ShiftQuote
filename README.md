@@ -1,5 +1,22 @@
 # Shift
 
+## Current Match testnet release
+
+Shift combines a community LP's Elysium conversion quote with a depositor bringing HYPE from HyperEVM. An exit user reserves test mUSDC, the LP supplies WHYPE, and the depositor supplies HyperEVM HYPE. Settlement credits native HYPE payouts and USDC proceeds. Accepted deadlines govern the two refund paths.
+
+The project wallet, Source admin, seeded LP owner, quote signer and treasury are `0x1329818d4a89a1ea42e9F78c84009A79b8F269f2`.
+
+- Read [TESTNET-DEPLOYMENT.md](TESTNET-DEPLOYMENT.md) for Cursor's frontend and worker deployment steps.
+- Read [deployments/match.json](deployments/match.json) for the current deployed addresses and indexing start blocks.
+- Read [deployments/testnet-evidence.json](deployments/testnet-evidence.json) for the actual success/refund transaction evidence.
+- Read [deployments/browser-evidence.json](deployments/browser-evidence.json) for the real three-wallet browser settlement fill ID.
+- Open `/match`, `/match/deposit`, `/match/lp` and `/match/recovery` for the guided app.
+- Open `/docs/match` for the user-facing guide.
+
+Public request links contain trade terms, signatures and a secret hash. The exit user's preimage stays in its browser/private recovery file. The current pilot coordinates named participants.
+
+## Original Desk reference
+
 One liquidity provider, one position. The position quotes a demo base token against USDC on Elysium. `evaluate` either stays quoted at the new mid or pulls the quote when the mid moves more than 50 bps, or when book slippage for the position size is above 50 bps. A swap is accepted only while the position is quoted.
 
 The HyperCore move is a scripted ledger. `shift` moves 25% of the Elysium base into that ledger, and `advanceScripted` walks it through in-transit, idle, and resting. The tokens stay in the position contract. This is not an order on HyperCore. `ElysiumCoreWriter` and the market-data precompile are not called.
@@ -47,9 +64,9 @@ Testnet deploy from `0x1329818d4a89a1ea42e9F78c84009A79b8F269f2`:
 
 The position was deposited with 1,000 SDA and 1,000 mUSDC and started Quoted at 1 USDC. The HyperCore leg is scripted. Canonical testnet USDC was not used because this deployer held none.
 
-## Second position (not deployed yet)
+## Original Desk live-book position
 
-`PositionV2` sits next to the submitted position. It does not replace it, and the site still reads the first one.
+The Desk shows the submitted position and PositionV2. The separate Match routes use the newer source, destination and LP contracts listed above.
 
 - Base is canonical WHYPE (`0xCD57F65c2B0e5881CFC2E609F7CD53b746E1F234`). Quote is the same mUSDC.
 - The reader is a new `KeeperBook` that the keeper fills from HyperCore spot `@107` (HYPE/USDC), priced from the Hyperliquid mainnet book.
@@ -57,7 +74,7 @@ The position was deposited with 1,000 SDA and 1,000 mUSDC and started Quoted at 
 - `shift`, `advanceScripted`, and `returnScripted` run on the live reader. The leg is still a ledger inside the contract. The tokens stay in the contract. This is not an order on HyperCore.
 - Swaps start closed. The owner opens and closes them with `setSwapsOpen`. Evaluate, preview, and the Shift legs run either way.
 - The owner can `withdraw` from the Elysium base and quote while Quoted or Pulled. The transit, core idle, and resting balances are never touched.
-- `requote` (owner only, from Pulled) moves the quote back to the mid of a fresh read. Pull keeps the old mid, so once the book settles more than 50 bps away, evaluate keeps answering Pull. Requote is the explicit way out. It reverts on a stale read or above 50 bps slippage. This needs a new deployment: the PositionV2 already on testnet does not have it.
+- `requote` (owner only, from Pulled) moves the quote back to the mid of a fresh read. Pull keeps the old mid, so once the book settles more than 50 bps away, evaluate keeps answering Pull. Requote is the explicit way out. It reverts on a stale read or above 50 bps slippage. The current PositionV2 deployment includes requote; older deployment addresses are historical.
 
 On the PositionV2 at `0x46093Bb711fD739386D24DE2172a59606040aEd7`, a stale quoted mid was walked from 78.58 to 81.83 on 21 October 2026, around 07:55 UTC. Swaps were closed from block 12681625 to 12681947, so nothing traded during the walk. Nine snapshots were posted by hand, starting at block 12681647. Each had the bid equal to the ask, 40 bps above the last, and those prices did not come from HyperCore. The tenth posted the live book once the gap was inside 50 bps, and evaluate in block 12681931 stored 81.8335. `requote` replaces that procedure.
 

@@ -1,0 +1,19 @@
+[Unit]
+Description=Shift Match confirmed-claim settlement executor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/shift-keeper/keeper
+Environment=PATH=/home/ubuntu/.local/bin:/usr/bin
+EnvironmentFile=/etc/shift/match-relayer.env
+ExecStart=/home/ubuntu/.local/bin/npm run --silent match-execute
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

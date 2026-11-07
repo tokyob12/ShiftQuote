@@ -1,0 +1,10 @@
+{
+  "readAt": "2026-11-06T23:44:59.062Z",
+  "fillId": "0xb5bd31754ab30fc5bd3aed8125706487852717dde24321170b30c5429dc15698",
+  "checks": [
+    "six routes",
+    "desktop and mobile",
+    "three-wallet UI settlement",
+    "no secret in public cards"
+  ]
+}

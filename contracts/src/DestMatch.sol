@@ -69,6 +69,7 @@ contract DestMatch {
         uint256 nonce;
         uint64 quotedAt;
         uint8 direction;
+        uint256 expectedBonus;
     }
 
     function lock(LockInput calldata input) external payable returns (bytes32 fillId) {
@@ -100,8 +101,8 @@ contract DestMatch {
         bytes32 right =
             keccak256(abi.encode(input.usdc, input.whype, input.secretHash, input.claimBefore, input.refundAfter));
         bytes32 extra =
-            keccak256(abi.encode(input.gasElysium, input.gasHyper, input.nonce, input.quotedAt, input.direction));
-        return keccak256(abi.encode(left, right, extra, exitFeeBps, protocolFeeBps));
+            keccak256(abi.encode(input.gasElysium, input.gasHyper, input.nonce, input.quotedAt, input.direction, input.expectedBonus));
+        return keccak256(abi.encode(left, right, extra, exitFeeBps, protocolFeeBps, block.chainid, address(this)));
     }
 
     function claim(bytes32 fillId, bytes32 secret) external {
@@ -115,11 +116,15 @@ contract DestMatch {
         emit Claimed(fillId, row.recipient, row.payment);
     }
 
-    function take() external {
-        uint256 amount = credit[msg.sender];
+    function take() external { _take(msg.sender); }
+
+    function takeFor(address beneficiary) external { _take(beneficiary); }
+
+    function _take(address beneficiary) internal {
+        uint256 amount = credit[beneficiary];
         if (amount == 0) revert BadStatus();
-        credit[msg.sender] = 0;
-        (bool ok,) = msg.sender.call{value: amount}("");
+        credit[beneficiary] = 0;
+        (bool ok,) = beneficiary.call{value: amount}("");
         if (!ok) revert TransferFailed();
     }
 
@@ -129,7 +134,7 @@ contract DestMatch {
         if (msg.sender != row.depositor) revert NotDepositor();
         if (block.timestamp < row.claimBefore) revert TooEarly();
         row.status = Status.Refunded;
-        credit[row.depositor] += row.payment;
+        credit[row.depositor] += row.payment + row.gasHyper;
         emit Refunded(fillId, row.depositor, row.payment);
     }
 }

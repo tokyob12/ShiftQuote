@@ -52,6 +52,7 @@ contract CommunityMatchTest is Test {
         source = new SourceMatch(treasury, 20, 5, 2_000, 1 hours, 1 ether);
         dest = new DestMatch(20, 5);
         factory = new LpFactory(address(source), IShiftToken(address(whype)), IShiftToken(address(usdc)));
+        source.configure(factory, block.chainid, address(dest), false);
 
         vm.prank(lpA);
         lp1 = factory.create();
@@ -176,6 +177,7 @@ contract CommunityMatchTest is Test {
     function test_second_fill_has_no_bonus_once_the_cap_is_spent() public {
         source = new SourceMatch(treasury, 20, 5, 2_000, 1 hours, 0.001 ether);
         factory = new LpFactory(address(source), IShiftToken(address(whype)), IShiftToken(address(usdc)));
+        source.configure(factory, block.chainid, address(dest), false);
         vm.prank(lpA);
         lp1 = factory.create();
         vm.startPrank(lpA);
@@ -248,7 +250,8 @@ contract CommunityMatchTest is Test {
                 gasHyper: 0.0001 ether,
                 nonce: input.nonce,
                 quotedAt: input.quotedAt,
-                direction: 1
+                direction: 1,
+                expectedBonus: input.expectedBonus
             })
         );
         bytes32 claimed = source.hashFill(address(lp1), exit, input);
@@ -298,6 +301,7 @@ contract CommunityMatchTest is Test {
     mapping(address => uint256) internal nextNonce;
     uint256 internal lastNonce;
     uint64 internal lastQuotedAt;
+    uint256 internal lastExpectedBonus;
 
     function _order(
         LpPosition position,
@@ -320,8 +324,10 @@ contract CommunityMatchTest is Test {
             gasHyper: 0,
             quotedAt: uint64(block.timestamp),
             direction: 1,
+            expectedBonus: source.previewBonus(whypeAmount),
             nonce: nextNonce[address(position)]
         });
+        lastExpectedBonus = input.expectedBonus;
         lastNonce = input.nonce;
         lastQuotedAt = input.quotedAt;
     }
@@ -349,7 +355,8 @@ contract CommunityMatchTest is Test {
             gasHyper: 0,
             nonce: lastNonce,
             quotedAt: lastQuotedAt,
-            direction: 1
+            direction: 1,
+            expectedBonus: lastExpectedBonus
         });
     }
 

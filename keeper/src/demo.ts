@@ -98,7 +98,7 @@ async function main() {
   const wallet = createWalletClient({ account, chain: elysiumTestnet, transport: http(rpc) });
   const { position, scriptedBook, base } = loadAddresses();
 
-  const read = async <T,>(functionName: string): Promise<T> =>
+  const read = async <T,>(functionName: "location" | "elysiumBase" | "transitBase" | "coreIdleBase" | "restingBase" | "quotedMidX18" | "spotLinked" | "base" | "quote"): Promise<T> =>
     publicClient.readContract({
       address: position,
       abi: positionAbi,

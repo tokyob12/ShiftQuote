@@ -46,9 +46,9 @@ U = USDC-ye pardakhti-e exit-user.
 Q = WHYPE-i ke LP baraye U quote dade.
 x = takhfif-e khorooj, mesalan 20 bps.
 f = fee-e protocol, mesalan 5 bps.
-X = floor(Q * x / 10000).
+X = Q - P, takhfif-e effective ba rounding-e contract.
 F = floor(Q * f / 10000).
-P = Q - X, HYPE-ye exit-user rooye HyperEVM.
+P = floor(Q * (10000 - x) / 10000), HYPE-ye exit-user rooye HyperEVM. X = Q - P takhfif-e effective ast.
 G_E = hazine-ye quoted-e relayer rooye Elysium.
 G_H = hazine-ye quoted-e relayer rooye HyperEVM.
 D = Q - F - G_E, HYPE-ye depositor rooye Elysium.
@@ -248,3 +248,15 @@ Hazine-ye baghi-mande RPC, VPS, gas-e relayer, va review-e mostaghel ast. USDC v
 - [ ] Launch gates va addresses az state-e chain verify beshan.
 
 Manba-ye messaging baraye joziyat-e retryable va address aliasing. [Arbitrum parent-to-child messaging](https://docs.arbitrum.io/how-arbitrum-works/deep-dives/l1-to-l2-messaging)
+
+## Testnet implementation update — 6 November 2026
+
+SourceMatch, DestMatch, LP factory, separate positions, complete signed fill terms, registered-position validation, native payouts, campaign-limited bonus and full gas refund have been implemented. The current metadata and transaction evidence are in deployments/match.json and deployments/testnet-evidence.json.
+
+The submitted wallet is verified as Source admin, seeded LP owner, signer and treasury. The original source/destination code issues were covered with regression tests. Actual testnet success and timeout refunds have completed.
+
+The app includes public request links, an exit-only private secret, recovery-file import, recent public request history, signed-term review, guided role screens and mobile layouts. Documentation has been updated for Match and the original Desk reference.
+
+Executor indexing, confirmed-claim settlement, delivery retry, watcher and pilot metrics use current contracts. Cursor's deployment steps and the remaining always-on-host setup are documented in TESTNET-DEPLOYMENT.md.
+
+Coordinated testnet trials remain the current flow. Automatic discovery, partner integrations, mainnet review and business-validation gates are separate milestones.

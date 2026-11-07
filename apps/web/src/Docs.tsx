@@ -13,11 +13,15 @@ export const docGroups = [
     ],
   },
   {
-    label: "The position",
+    label: "Match",
+    pages: [{ id: "match", href: "/docs/match", label: "Match & recovery" }],
+  },
+  {
+    label: "Settlement & Desk reference",
     pages: [
-      { id: "how", href: "/docs/how-it-works", label: "How it works" },
-      { id: "locations", href: "/docs/locations", label: "Locations" },
-      { id: "decisions", href: "/docs/decisions", label: "Decisions" },
+      { id: "how", href: "/docs/how-it-works", label: "Settlement flow" },
+      { id: "locations", href: "/docs/locations", label: "Desk locations" },
+      { id: "decisions", href: "/docs/decisions", label: "Desk decisions" },
     ],
   },
   {
@@ -29,12 +33,12 @@ export const docGroups = [
     pages: [{ id: "contracts", href: "/docs/contracts", label: "Deployment" }],
   },
   {
-    label: "Books",
-    pages: [{ id: "books", href: "/docs/books", label: "Books" }],
+    label: "Market reference",
+    pages: [{ id: "books", href: "/docs/books", label: "Market reference" }],
   },
   {
     label: "Testnet",
-    pages: [{ id: "testnet", href: "/docs/testnet", label: "Try the desk" }],
+    pages: [{ id: "testnet", href: "/docs/testnet", label: "Try the testnet" }],
   },
   {
     label: "Roadmap",
@@ -44,7 +48,9 @@ export const docGroups = [
 
 export type DocsPage = (typeof docGroups)[number]["pages"][number]["id"];
 
-const flatPages = docGroups.flatMap((group) => group.pages.map((page) => ({ ...page, group: group.label })));
+const flatPages = docGroups.flatMap((group) =>
+  group.pages.map((page) => ({ ...page, group: group.label })),
+);
 
 export function docsPageFromPath(path: string): DocsPage | null {
   return flatPages.find((page) => page.href === path)?.id ?? null;
@@ -56,10 +62,14 @@ export function docTitle(page: DocsPage): string {
 
 function DocsNav({ current }: { current: DocsPage }) {
   const navRef = useRef<HTMLElement>(null);
-  const [marker, setMarker] = useState<{ top: number; height: number } | null>(null);
+  const [marker, setMarker] = useState<{ top: number; height: number } | null>(
+    null,
+  );
 
   useLayoutEffect(() => {
-    const active = navRef.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+    const active = navRef.current?.querySelector<HTMLElement>(
+      'a[aria-current="page"]',
+    );
     if (!active || !navRef.current) return;
     setMarker({ top: active.offsetTop, height: active.offsetHeight });
   }, [current]);
@@ -67,13 +77,24 @@ function DocsNav({ current }: { current: DocsPage }) {
   return (
     <nav ref={navRef} className="docs-nav" aria-label="Documentation">
       {marker && (
-        <span className="docs-marker" style={{ transform: `translateY(${marker.top}px)`, height: marker.height }} aria-hidden="true" />
+        <span
+          className="docs-marker"
+          style={{
+            transform: `translateY(${marker.top}px)`,
+            height: marker.height,
+          }}
+          aria-hidden="true"
+        />
       )}
       {docGroups.map((group) => (
         <div key={group.label} className="docs-group">
           <p>{group.label}</p>
           {group.pages.map((page) => (
-            <a key={page.id} href={page.href} aria-current={page.id === current ? "page" : undefined}>
+            <a
+              key={page.id}
+              href={page.href}
+              aria-current={page.id === current ? "page" : undefined}
+            >
               {page.label}
             </a>
           ))}
@@ -97,7 +118,12 @@ function DocsContents({ current }: { current: DocsPage }) {
 
   return (
     <div className={`docs-contents${open ? " open" : ""}`}>
-      <button type="button" className="docs-contents-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <button
+        type="button"
+        className="docs-contents-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
         <span className="docs-contents-where">
           <span>{entry.group}</span>
           <strong>{entry.label}</strong>

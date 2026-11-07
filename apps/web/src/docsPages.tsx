@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { DocsPage } from "./Docs";
 import { deployments } from "./deployments";
+import { matchDeployments } from "./matchDeployments";
 
 const hypeFaucet = "https://testnet.elysium.kinetiq.xyz/faucet";
 const explorer = "https://testnet.elysium.kinetiq.xyz/explorer";
@@ -12,6 +13,7 @@ export function DocArticle({ page }: { page: DocsPage }) {
 
 const pages: Record<DocsPage, () => ReactElement> = {
   home: Home,
+  match: MatchGuide,
   why: Why,
   glossary: Glossary,
   faq: Faq,
@@ -28,30 +30,50 @@ const pages: Record<DocsPage, () => ReactElement> = {
 function Home() {
   return (
     <>
-      <p className="eyebrow">Introduction</p>
-      <h1>One LP. One position.</h1>
+      <p className="eyebrow">Shift documentation</p>
+      <h1>Desk liquidity meets cross-chain Match.</h1>
       <p>
-        Shift keeps an Elysium quote from becoming the stale side of a HyperCore book. The position reads a book snapshot and chooses Stay or Pull. Shift is a separate owner call.
+        Shift Match connects an Elysium USDC exit to a community LP and a
+        participant bringing HYPE from HyperEVM. One signed set of terms fixes
+        what all three participants send and receive.
       </p>
       <p>
-        <a className="btn primary" href="/desk">
-          Open the desk
-        </a>
+        The current application runs on Elysium testnet and HyperEVM testnet. It
+        uses test mUSDC, WHYPE and native HYPE.
       </p>
-      <h2>What this spec covers</h2>
-      <p>
-        These pages describe the contracts that are deployed, the numbers they use, and who is allowed to call each function. They do not describe a later product.
-      </p>
+      <h2>Choose your role</h2>
       <ul>
-        <li>Band is 50 bps. One Shift moves at most 25% of the Elysium base.</li>
-        <li>Stay and Pull update the quote. They do not move tokens off Elysium.</li>
-        <li>Shift, Advance, and Return run only while the attached reader is the scripted book. The moved base stays inside the position contract.</li>
+        <li>
+          <a href="/match">Exit user</a> — reserve USDC on Elysium and receive
+          HYPE on HyperEVM.
+        </li>
+        <li>
+          <a href="/match/deposit">Depositor</a> — lock HYPE on HyperEVM and
+          receive HYPE on Elysium.
+        </li>
+        <li>
+          <a href="/match/lp">Liquidity provider</a> — quote WHYPE from an
+          individual position and receive USDC plus the accepted bonus.
+        </li>
       </ul>
-      <p className="testnet">
-        <span className="testnet-tag">Testnet</span>
-        <span>
-          The HyperCore leg is scripted. Tokens stay in the contract. This is not an order on HyperCore. The quote in the demo is mUSDC, a mock.
-        </span>
+      <h2>Start with a coordinated trial</h2>
+      <p>
+        Arrange an LP and incoming depositor, then prepare a public request.
+        Share links between participants while keeping the exit user's recovery
+        secret private. Read the amounts and both deadlines before reserving
+        funds.
+      </p>
+      <p>
+        <a href="/docs/match">Match and recovery guide</a> ·{" "}
+        <a href="/docs/testnet">Networks and test tokens</a> ·{" "}
+        <a href="/docs/math">Fees and pricing</a>
+      </p>
+      <h2>The original Desk</h2>
+      <p>
+        The submitted Desk remains available at <a href="/desk">/desk</a>. Its
+        Stay, Pull and scripted Shift states have their own reference pages.
+        Match positions use available and reserved inventory rather than that
+        state sequence.
       </p>
     </>
   );
@@ -60,21 +82,38 @@ function Home() {
 function Why() {
   return (
     <>
-      <p className="eyebrow">Introduction</p>
-      <h1>The LP should not be the stale side.</h1>
+      <p className="eyebrow">Why Shift</p>
+      <h1>A quote for the complete exit.</h1>
       <p>
-        When the Elysium quote falls behind the HyperCore book, the LP is the one who gets picked off. The pool is still quoting a price the book has already left.
+        A trader who holds USDC on Elysium may want HYPE on HyperEVM. Match
+        combines an LP's local conversion quote with a participant who wants to
+        enter Elysium.
       </p>
+      <h2>Commit the two Elysium assets together</h2>
       <p>
-        Shift is for that LP. It is useful in the first week of a launch, and every day after, for any token with both an Elysium pool and a HyperCore book.
+        Funding moves the exit's USDC and the LP's WHYPE into the same source
+        fill. USDC reaches the LP through settlement. An eligible source refund
+        returns the original assets to their original owners.
       </p>
-      <h2>Stay and Pull are the launch-day decision</h2>
+      <h2>Give incoming HYPE a useful destination</h2>
       <p>
-        Stay keeps the quote on the new mid while the book is close. Pull takes the quote off when the book moves too far. Both leave the tokens on Elysium. Neither one needs a live order on HyperCore.
+        The depositor pays the exit on HyperEVM and receives inventory already
+        on Elysium. The difference between these amounts provides the quoted
+        depositor bonus before their gas costs.
       </p>
-      <h2>The slice stays with the LP</h2>
+      <h2>Measure the result</h2>
       <p>
-        The intended resting place of a slice is that LP's own HyperCore account. Shift does not place inventory in a shared pool. On this testnet the slice is still a ledger inside the position contract, and the desk says so.
+        Compare the full route with a local swap followed by an available
+        cross-chain offer. Use the same starting USDC, final HYPE asset, gas
+        convention and deadline. Check failed matches and waiting time alongside
+        received amounts.
+      </p>
+      <h2>Respect the timing assumptions</h2>
+      <p>
+        The chains settle separately. If HyperEVM has paid but Elysium remains
+        unavailable beyond the source safety window, a timing risk remains.
+        Testnet exercises success, timeout and recovery paths before a broader
+        release.
       </p>
     </>
   );
@@ -83,29 +122,68 @@ function Why() {
 function Glossary() {
   return (
     <>
-      <p className="eyebrow">Introduction</p>
+      <p className="eyebrow">Reference</p>
       <h1>Glossary</h1>
       <dl className="spec-list">
-        <dt>Position</dt>
-        <dd>One LP's inventory. Reserves are not shared with any other LP.</dd>
-        <dt>Quoted mid</dt>
-        <dd>The mid the position is willing to sell base at, stored as quotedMidX18.</dd>
-        <dt>midX18</dt>
-        <dd>USDC per 1 whole base token, scaled by 1e18. The quote token itself has 6 decimals.</dd>
-        <dt>Band</dt>
-        <dd>50 bps. BAND_BPS in the position. A wider move Pulls the quote.</dd>
-        <dt>Slippage</dt>
-        <dd>A number on the book snapshot, in bps. Above 50, evaluate Pulls and shift reverts.</dd>
-        <dt>Location</dt>
-        <dd>Where the base sits: Uninitialized, Quoted, Pulled, InTransit, OnCoreIdle, or Resting.</dd>
-        <dt>Scripted ledger</dt>
-        <dd>transitBase, coreIdleBase, and restingBase. Those balances never leave the contract on testnet.</dd>
-        <dt>SDA</dt>
-        <dd>Shift Demo Asset. 18 decimals. It has no HyperCore spot market.</dd>
+        <dt>Exit user</dt>
+        <dd>The wallet offering Elysium USDC for HyperEVM HYPE.</dd>
+        <dt>Depositor</dt>
+        <dd>The wallet paying HyperEVM HYPE to receive Elysium HYPE.</dd>
+        <dt>Community LP</dt>
+        <dd>
+          An owner of a separate WHYPE position that supplies the conversion
+          inventory.
+        </dd>
+        <dt>WHYPE</dt>
+        <dd>
+          Wrapped native HYPE on Elysium. LP inventory is held as WHYPE and
+          successful native payouts are unwrapped.
+        </dd>
         <dt>mUSDC</dt>
-        <dd>Mock USDC. 6 decimals. It is not the canonical testnet USDC.</dd>
-        <dt>Spot linked</dt>
-        <dd>An owner flag. shift reverts with SpotNotLinked until it is true.</dd>
+        <dd>The mock 6-decimal USDC token used in this testnet deployment.</dd>
+        <dt>Public request</dt>
+        <dd>
+          Trade terms, a secret hash and any LP signature. It can be shared by
+          link.
+        </dd>
+        <dt>Private recovery secret</dt>
+        <dd>
+          The exit user's secret that authorizes both claims after the
+          destination is safely funded. Keep the recovery file private.
+        </dd>
+        <dt>Reserved inventory</dt>
+        <dd>WHYPE committed to an accepted fill until settlement or refund.</dd>
+        <dt>Claimable credit</dt>
+        <dd>
+          HYPE assigned to a beneficiary inside a contract, ready for a separate
+          wallet withdrawal.
+        </dd>
+        <dt>Spread</dt>
+        <dd>The margin included in the LP's USDC/WHYPE quote.</dd>
+        <dt>Protocol fee</dt>
+        <dd>
+          The HYPE amount taken from a successfully settled WHYPE slice, with
+          any accepted LP bonus paid from it.
+        </dd>
+        <dt>Claim deadline</dt>
+        <dd>
+          The HyperEVM time after which an unclaimed lock can be refunded.
+        </dd>
+        <dt>Refund deadline</dt>
+        <dd>
+          The later Elysium time after which an unsettled source can refund its
+          original assets.
+        </dd>
+        <dt>Desk</dt>
+        <dd>
+          The original Shift interface with Stay, Pull and a scripted HyperCore
+          inventory leg.
+        </dd>
+        <dt>HyperCore reference</dt>
+        <dd>
+          Market data used to help price an LP quote. The accepted signature
+          fixes that fill's amounts.
+        </dd>
       </dl>
     </>
   );
@@ -114,21 +192,72 @@ function Glossary() {
 function Faq() {
   return (
     <>
-      <p className="eyebrow">Introduction</p>
+      <p className="eyebrow">Questions</p>
       <h1>FAQ</h1>
-      <h2>Is a Shift an order on HyperCore?</h2>
-      <p>No. On this deployment the reader is the scripted book. shift moves base from elysiumBase to transitBase inside the same contract.</p>
-      <h2>Can anyone Swap?</h2>
-      <p>Yes, while the location is Quoted and the caller holds enough mUSDC and has approved the position. Swap reverts with BadLocation in every other location, including Pulled.</p>
-      <h2>Who can Deposit, Shift, Advance, and Return?</h2>
-      <p>Only the position owner. A stranger's call reverts with NotOwner.</p>
-      <h2>Why is the quote labeled mock?</h2>
-      <p>The deployer held none of the canonical testnet USDC, so the demo uses mUSDC. The desk prints "(mock)" next to the balance.</p>
-      <h2>Does the ETH ladder on the desk drive Stay and Pull?</h2>
-      <p>No. That ladder is a live HyperCore ETH reference. The position reads the attached book, which on this deployment is the scripted book.</p>
-      <h2>Does Shift have a token?</h2>
+      <h2>What do I receive?</h2>
       <p>
-        Not today, and the product does not need one. A token may come later, after Shift is live on Elysium mainnet and LPs are using it, to govern the decisions shared across many positions: the protocol fee, the default band, and which book readers and keepers a position may use. It would be announced publicly before any launch. SDA and mUSDC are test inventory for the desk.
+        An exit user receives native test HYPE on HyperEVM. A depositor receives
+        native test HYPE on Elysium. The LP receives test USDC proceeds and any
+        accepted native HYPE bonus.
+      </p>
+      <h2>Who supplies the money?</h2>
+      <p>
+        The exit user supplies USDC, the LP supplies WHYPE on Elysium, and the
+        depositor supplies HYPE on HyperEVM. Each participant approves their own
+        part.
+      </p>
+      <h2>How do I find a match?</h2>
+      <p>
+        This testnet release supports coordinated participants. Arrange the LP
+        and incoming wallet, prepare a request, and share its public links. The
+        app verifies funding conditions before the next leg.
+      </p>
+      <h2>Can I leave while waiting?</h2>
+      <p>
+        Before funding, funds remain in your wallet. Once funded, the signed
+        claim and refund deadlines control recovery. Check the Recovery page for
+        your actual chain state.
+      </p>
+      <h2>Why does Receive ask for two confirmations?</h2>
+      <p>
+        Claim first assigns the HyperEVM credit. Take then sends that credit to
+        the recipient wallet. The Receive action guides both transactions.
+      </p>
+      <h2>Who gets the recovery secret?</h2>
+      <p>
+        The exit wallet keeps it private until claiming the funded destination.
+        Share the public request link with the LP and depositor. Save a private
+        recovery file in case the browser session is lost.
+      </p>
+      <h2>What happens if the executor stops?</h2>
+      <p>
+        Recovery provides manual source settlement and credit withdrawals.
+        Expired, eligible locks can be refunded. Completing the second leg
+        promptly matters after the destination has paid.
+      </p>
+      <h2>Can an LP withdraw?</h2>
+      <p>
+        Available WHYPE and earned USDC can be withdrawn. Reserved WHYPE
+        completes its existing trade or eligible refund first. The LP can pause
+        new fills and set reservation limits.
+      </p>
+      <h2>How much does the LP earn?</h2>
+      <p>
+        Its signed conversion price includes its spread. The campaign can also
+        pay 20% of the collected protocol fee within its cap and 30-day
+        deadline. Price changes, gas and inventory replacement costs affect the
+        result.
+      </p>
+      <h2>Which wallet represents Shift?</h2>
+      <p>
+        The source admin, seeded LP owner, quote signer and treasury are{" "}
+        <code>0x1329818d4a89a1ea42e9F78c84009A79b8F269f2</code>.
+      </p>
+      <h2>Is a Shift token required?</h2>
+      <p>
+        Testnet participants use mUSDC, HYPE and WHYPE. Fees and LP rewards are
+        calculated from settled fills. Any future token proposal would need a
+        separate announcement.
       </p>
     </>
   );
@@ -137,19 +266,54 @@ function Faq() {
 function How() {
   return (
     <>
-      <p className="eyebrow">The position</p>
-      <h1>The book moves. The position chooses.</h1>
-      <p>One position holds the quote. evaluate reads the attached book and returns Stay or Pull. shift is a separate owner call. It is not the result of evaluate.</p>
-      <h2>Stay</h2>
-      <p>The book mid is within 50 bps of the quoted mid, and snapshot slippage is at most 50 bps. evaluate sets the quoted mid to the new mid and leaves the location Quoted.</p>
-      <h2>Pull</h2>
-      <p>The mid has moved more than 50 bps, or slippage is above 50 bps. evaluate sets the location to Pulled and does not change the quoted mid. Swap then reverts. The tokens stay on Elysium.</p>
-      <h2>Shift</h2>
+      <p className="eyebrow">Settlement</p>
+      <h1>From a public request to HYPE.</h1>
+      <ol>
+        <li>
+          The exit user enters USDC, recipient details and the incoming
+          participant. The browser creates the secret privately and includes
+          only its hash in the public request.
+        </li>
+        <li>
+          The LP signs all fill terms, including amounts, gas budgets,
+          destinations, bonus and deadlines.
+        </li>
+        <li>
+          The exit user funds the Elysium side. USDC and the LP's WHYPE reserve
+          in one source transaction.
+        </li>
+        <li>
+          The depositor verifies the source and locks the payment plus its gas
+          allowance on HyperEVM.
+        </li>
+        <li>
+          The exit user verifies the exact lock and confirmations, then reveals
+          the secret to claim HyperEVM credit and withdraw it.
+        </li>
+        <li>
+          The executor observes the confirmed claim and settles Elysium. USDC
+          pays the LP. Unwrapped HYPE credits the depositor, bonus recipient,
+          treasury and any gas executor.
+        </li>
+      </ol>
+      <h2>When a trade times out</h2>
       <p>
-        The owner calls shift. Spot must be linked, the reader must be scripted, the location must be Quoted or Pulled, and slippage must be at most 50 bps. The call moves 25% of elysiumBase onto transitBase and sets the location to InTransit.
+        HyperEVM refunds an unclaimed payment and unused gas allowance after its
+        claim deadline. Elysium refunds an unsettled fill after its later refund
+        deadline. The original USDC and WHYPE return to their owners.
       </p>
+      <h2>After the destination has paid</h2>
       <p>
-        The exact predicates are on <a href="/docs/decisions">Decisions</a>. The six locations are on <a href="/docs/locations">Locations</a>.
+        The Elysium leg must settle before its refund deadline. A long chain
+        outage can exceed the safety window. Keep the recovery file and use
+        manual settlement if the automated executor is unavailable.
+      </p>
+      <h2>Original Desk reference</h2>
+      <p>
+        The <a href="/desk">Desk</a> reads its book and chooses Stay or Pull.
+        Its Shift action tracks the scripted inventory leg. See{" "}
+        <a href="/docs/locations">Desk locations</a> and{" "}
+        <a href="/docs/decisions">Desk decisions</a> for those states.
       </p>
     </>
   );
@@ -160,7 +324,10 @@ function Locations() {
     <>
       <p className="eyebrow">The position</p>
       <h1>Where the base sits</h1>
-      <p>Location is an enum on the position. Only one location is active. The base token is split across the balances below.</p>
+      <p>
+        Location is an enum on the position. Only one location is active. The
+        base token is split across the balances below.
+      </p>
       <table className="spec">
         <thead>
           <tr>
@@ -173,36 +340,55 @@ function Locations() {
           <tr>
             <td data-label="Location">Uninitialized</td>
             <td data-label="Balance that holds the moved base">None yet</td>
-            <td data-label="What can happen">The first deposit reads the book, stores that mid, and becomes Quoted.</td>
+            <td data-label="What can happen">
+              The first deposit reads the book, stores that mid, and becomes
+              Quoted.
+            </td>
           </tr>
           <tr>
             <td data-label="Location">Quoted</td>
             <td data-label="Balance that holds the moved base">elysiumBase</td>
-            <td data-label="What can happen">evaluate can Stay or Pull. swap can sell base at the quoted mid.</td>
+            <td data-label="What can happen">
+              evaluate can Stay or Pull. swap can sell base at the quoted mid.
+            </td>
           </tr>
           <tr>
             <td data-label="Location">Pulled</td>
             <td data-label="Balance that holds the moved base">elysiumBase</td>
-            <td data-label="What can happen">evaluate can return to Quoted if the book comes back inside the band. swap reverts.</td>
+            <td data-label="What can happen">
+              evaluate can return to Quoted if the book comes back inside the
+              band. swap reverts.
+            </td>
           </tr>
           <tr>
             <td data-label="Location">InTransit</td>
             <td data-label="Balance that holds the moved base">transitBase</td>
-            <td data-label="What can happen">advanceScripted moves that balance to coreIdleBase.</td>
+            <td data-label="What can happen">
+              advanceScripted moves that balance to coreIdleBase.
+            </td>
           </tr>
           <tr>
             <td data-label="Location">OnCoreIdle</td>
             <td data-label="Balance that holds the moved base">coreIdleBase</td>
-            <td data-label="What can happen">advanceScripted moves that balance to restingBase.</td>
+            <td data-label="What can happen">
+              advanceScripted moves that balance to restingBase.
+            </td>
           </tr>
           <tr>
             <td data-label="Location">Resting</td>
             <td data-label="Balance that holds the moved base">restingBase</td>
-            <td data-label="What can happen">returnScripted sends every scripted balance back to elysiumBase and sets Quoted.</td>
+            <td data-label="What can happen">
+              returnScripted sends every scripted balance back to elysiumBase
+              and sets Quoted.
+            </td>
           </tr>
         </tbody>
       </table>
-      <p>deposit is allowed in Uninitialized, Quoted, and Pulled. It reverts with BadLocation in the three scripted locations. evaluate reverts unless the location is Quoted or Pulled.</p>
+      <p>
+        deposit is allowed in Uninitialized, Quoted, and Pulled. It reverts with
+        BadLocation in the three scripted locations. evaluate reverts unless the
+        location is Quoted or Pulled.
+      </p>
     </>
   );
 }
@@ -213,19 +399,36 @@ function Decisions() {
       <p className="eyebrow">The position</p>
       <h1>Stay, Pull, and Shift</h1>
       <h2>evaluate</h2>
-      <p>Anyone can call evaluate while the location is Quoted or Pulled. The position reads the attached book and computes:</p>
+      <p>
+        Anyone can call evaluate while the location is Quoted or Pulled. The
+        position reads the attached book and computes:
+      </p>
       <pre className="formula">
         <code>deviation = abs(bookMid - quotedMid) * 10000 / quotedMid</code>
       </pre>
-      <p>If deviation is greater than 50, or snapshot slippage is greater than 50, the decision is Pull. Otherwise it is Stay. A zero mid reverts with ZeroAmount.</p>
-      <p>Pull sets location to Pulled and leaves quotedMidX18 unchanged. Stay sets location to Quoted and sets quotedMidX18 to the book mid. lastDecision stores the result.</p>
+      <p>
+        If deviation is greater than 50, or snapshot slippage is greater than
+        50, the decision is Pull. Otherwise it is Stay. A zero mid reverts with
+        ZeroAmount.
+      </p>
+      <p>
+        Pull sets location to Pulled and leaves quotedMidX18 unchanged. Stay
+        sets location to Quoted and sets quotedMidX18 to the book mid.
+        lastDecision stores the result.
+      </p>
       <h2>preview</h2>
       <p>
-        preview is the view form of that read. Outside Quoted and Pulled it returns the last decision and the stored mid without touching the book. Inside those two locations it calls read, so a stale keeper snapshot reverts with Stale.
+        preview is the view form of that read. Outside Quoted and Pulled it
+        returns the last decision and the stored mid without touching the book.
+        Inside those two locations it calls read, so a stale keeper snapshot
+        reverts with Stale.
       </p>
       <h2>swap</h2>
       <p>
-        swap sells baseOut of SDA at the stored quoted mid. It reverts unless the location is Quoted. The caller pays mUSDC and receives SDA. The quote pulled from the caller is added to elysiumQuote, and elysiumBase falls by baseOut.
+        swap sells baseOut of SDA at the stored quoted mid. It reverts unless
+        the location is Quoted. The caller pays mUSDC and receives SDA. The
+        quote pulled from the caller is added to elysiumQuote, and elysiumBase
+        falls by baseOut.
       </p>
       <h2>shift</h2>
       <p>Only the owner. The call reverts unless all of these hold:</p>
@@ -238,9 +441,19 @@ function Decisions() {
       <pre className="formula">
         <code>slice = elysiumBase * 2500 / 10000</code>
       </pre>
-      <p>That slice moves from elysiumBase to transitBase. Location becomes InTransit and lastDecision becomes Shift. shift does not check whether the book mid is inside the band. That check belongs to evaluate.</p>
+      <p>
+        That slice moves from elysiumBase to transitBase. Location becomes
+        InTransit and lastDecision becomes Shift. shift does not check whether
+        the book mid is inside the band. That check belongs to evaluate.
+      </p>
       <h2>advanceScripted and returnScripted</h2>
-      <p>Both are owner-only and require the scripted reader. advanceScripted walks InTransit to OnCoreIdle, then OnCoreIdle to Resting. returnScripted adds transitBase + coreIdleBase + restingBase back to elysiumBase, zeroes those three fields, and sets the location to Quoted with lastDecision Stay.</p>
+      <p>
+        Both are owner-only and require the scripted reader. advanceScripted
+        walks InTransit to OnCoreIdle, then OnCoreIdle to Resting.
+        returnScripted adds transitBase + coreIdleBase + restingBase back to
+        elysiumBase, zeroes those three fields, and sets the location to Quoted
+        with lastDecision Stay.
+      </p>
     </>
   );
 }
@@ -248,19 +461,55 @@ function Decisions() {
 function MathPage() {
   return (
     <>
-      <p className="eyebrow">Math</p>
-      <h1>Pricing</h1>
-      <p>midX18 is USDC per one whole base token, scaled by 1e18. SDA has 18 decimals. mUSDC has 6.</p>
+      <p className="eyebrow">Pricing</p>
+      <h1>Follow every part of the quote.</h1>
+      <p>
+        USDC uses 6 decimals and HYPE/WHYPE use 18. Contract arithmetic uses
+        integer units and rounds down unless the quote service explicitly rounds
+        a cost up.
+      </p>
+      <h2>The LP conversion</h2>
+      <p>
+        The market-reference helper walks HyperCore asks for the requested size
+        and includes a 10 bps LP spread suggestion. The LP approves the
+        executable quote. It can agree different terms in Advanced settings. A
+        stale snapshot or insufficient visible depth rejects the suggested
+        quote.
+      </p>
+      <h2>Match amounts</h2>
       <pre className="formula">
-        <code>usdcIn = baseOut * midX18 / 1e30</code>
+        <code>{`Q = LP WHYPE supplied
+P = floor(Q × 9980 / 10000)
+F = floor(Q × 5 / 10000)
+D = Q − F − Elysium gas allowance
+HyperEVM lock = P + HyperEVM gas allowance`}</code>
       </pre>
-      <p>The 1e30 is 1e18 from the base token times 1e18 from the price, divided down to 6-decimal quote units. A result of zero reverts with ZeroAmount.</p>
-      <h2>One SDA at one dollar</h2>
-      <p>baseOut is 1e18. midX18 is 1e18. usdcIn is 1e18 * 1e18 / 1e30 = 1e6. The buyer pays 1.000000 mUSDC and receives 1 SDA.</p>
-      <h2>A 60 bps move</h2>
-      <p>Quoted mid is 1e18. The book mid is 1.006e18. deviation is 0.006e18 * 10000 / 1e18 = 60. That is above 50, so evaluate returns Pull even if slippage is 0.</p>
-      <h2>The book mid</h2>
-      <p>Both books store a bid and an ask. read sets midX18 to (bid + ask) / 2. set and setSnapshot revert with BadPrice when the bid is zero or the ask is below the bid.</p>
+      <p>
+        P goes to the exit user on HyperEVM. D goes to the depositor on Elysium.
+        F is the protocol fee from the Elysium slice. Gas paid directly by
+        wallets is an additional transaction cost.
+      </p>
+      <h2>An illustrative 800 USDC quote</h2>
+      <p>
+        If the LP supplies 10 WHYPE for 800 USDC, P is 9.98 HYPE, F is 0.005
+        HYPE and D is 9.995 HYPE before any gas allowance. The depositor
+        difference is 0.015 HYPE before its gas costs. The quoted exchange price
+        and inventory costs determine the LP's economic result.
+      </p>
+      <h2>LP bonus</h2>
+      <p>
+        The campaign can reserve 20% of F for the LP. In that example the bonus
+        is 0.001 HYPE and the remaining protocol share is 0.004 HYPE before
+        operating costs. The 1 HYPE campaign cap and 30-day campaign deadline
+        restrict new bonus commitments. The accepted fill stores its exact bonus
+        through settlement or refund.
+      </p>
+      <h2>Original Desk math</h2>
+      <p>
+        The original Desk converts base token units at its mid using{" "}
+        <code>usdcIn = baseOut × midX18 / 1e30</code>. Its 50 bps band controls
+        Stay/Pull decisions. These are the original Desk's pricing rules.
+      </p>
     </>
   );
 }
@@ -268,89 +517,85 @@ function MathPage() {
 function Contracts() {
   return (
     <>
-      <p className="eyebrow">Contracts</p>
-      <h1>Deployment</h1>
-      <p>Elysium testnet, chain id {deployments.chainId}. The demo LP is the contract owner.</p>
-      <table className="spec">
-        <thead>
-          <tr>
-            <th>Contract</th>
-            <th>Address</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="Contract">Position</td>
-            <td data-label="Address">
-              <code>{deployments.position}</code>
-            </td>
-          </tr>
-          <tr>
-            <td data-label="Contract">SDA</td>
-            <td data-label="Address">
-              <code>{deployments.demoAsset}</code>
-            </td>
-          </tr>
-          <tr>
-            <td data-label="Contract">mUSDC</td>
-            <td data-label="Address">
-              <code>{deployments.quote}</code>
-            </td>
-          </tr>
-          <tr>
-            <td data-label="Contract">Scripted book</td>
-            <td data-label="Address">
-              <code>{deployments.scriptedBook}</code>
-            </td>
-          </tr>
-          <tr>
-            <td data-label="Contract">Keeper book</td>
-            <td data-label="Address">
-              <code>{deployments.keeperBook}</code>
-            </td>
-          </tr>
-          <tr>
-            <td data-label="Contract">Faucet</td>
-            <td data-label="Address">
-              <code>{deployments.faucet}</code>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <h2>Who can call</h2>
-      <table className="spec">
-        <thead>
-          <tr>
-            <th>Call</th>
-            <th>Caller</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="Call">evaluate, preview, swap</td>
-            <td data-label="Caller">Anyone. swap still has to pass the location check and pay mUSDC.</td>
-          </tr>
-          <tr>
-            <td data-label="Call">deposit, setSpotLinked, shift, advanceScripted, returnScripted</td>
-            <td data-label="Caller">Position owner. Otherwise NotOwner.</td>
-          </tr>
-          <tr>
-            <td data-label="Call">ScriptedBook.set</td>
-            <td data-label="Caller">Book owner.</td>
-          </tr>
-          <tr>
-            <td data-label="Call">KeeperBook.setSnapshot</td>
-            <td data-label="Caller">Keeper. Otherwise NotKeeper.</td>
-          </tr>
-          <tr>
-            <td data-label="Call">Faucet.drip</td>
-            <td data-label="Caller">Anyone, once an hour. The faucet cannot mint. It only transfers a balance it already holds.</td>
-          </tr>
-        </tbody>
-      </table>
-      <h2>Errors</h2>
+      <p className="eyebrow">Deployment</p>
+      <h1>Match testnet contracts.</h1>
       <p>
-        NotOwner, BadLocation, NotScripted, SpotNotLinked, Slippage, ZeroAmount, and TransferFailed come from the position. TransferFailed means the ERC-20 transfer or transferFrom returned false. SDA and mUSDC can only be minted by their minter, which is the deployer.
+        Elysium testnet is chain 99801. HyperEVM testnet is chain 998. Verify
+        both the address and network when reading a receipt.
+      </p>
+      <dl className="spec-list">
+        <dt>SourceMatch · Elysium</dt>
+        <dd>
+          <code>{matchDeployments.sourceMatch}</code>
+        </dd>
+        <dt>DestMatch · HyperEVM</dt>
+        <dd>
+          <code>{matchDeployments.destMatch}</code>
+        </dd>
+        <dt>LP factory · Elysium</dt>
+        <dd>
+          <code>{matchDeployments.factory}</code>
+        </dd>
+        <dt>Seeded LP position · Elysium</dt>
+        <dd>
+          <code>{matchDeployments.position}</code>
+        </dd>
+        <dt>WHYPE · Elysium</dt>
+        <dd>
+          <code>{matchDeployments.whype}</code>
+        </dd>
+        <dt>mUSDC · Elysium</dt>
+        <dd>
+          <code>{matchDeployments.usdc}</code>
+        </dd>
+      </dl>
+      <h2>Ownership and signing</h2>
+      <p>
+        The seeded position owner, source admin, treasury and quote signer are{" "}
+        <code>0x1329818d4a89a1ea42e9F78c84009A79b8F269f2</code>. New LPs create
+        positions owned by their own wallets. A quote signer authorizes exact
+        fills. Withdrawal remains under the position owner's control.
+      </p>
+      <h2>What the contracts enforce</h2>
+      <p>
+        Source accepts factory-registered positions with the configured tokens.
+        LP signatures bind the complete fill and destination deployment. Nonces,
+        one-time secret hashes, minimum timeout spacing, a maximum lock
+        duration, inventory limits and campaign budget checks constrain accepted
+        fills.
+      </p>
+      <p>
+        Destination claims and source settlement assign fixed beneficiary
+        amounts. Native credits are withdrawn separately. Destination refunds
+        include the unused gas allowance.
+      </p>
+      <h2>Original Desk deployment</h2>
+      <dl className="spec-list">
+        <dt>Submitted position</dt>
+        <dd>
+          <code>{deployments.position}</code>
+        </dd>
+        <dt>Live-book position</dt>
+        <dd>
+          <code>{deployments.v2.position}</code>
+        </dd>
+        <dt>Scripted book</dt>
+        <dd>
+          <code>{deployments.scriptedBook}</code>
+        </dd>
+        <dt>HYPE keeper book</dt>
+        <dd>
+          <code>{deployments.v2.keeperBook}</code>
+        </dd>
+        <dt>Test token faucet</dt>
+        <dd>
+          <code>{deployments.faucet}</code>
+        </dd>
+      </dl>
+      <p>
+        <a href={explorer}>Open the Elysium testnet explorer</a>. Current
+        deployment configuration is recorded in the repository alongside the
+        transaction evidence.
       </p>
     </>
   );
@@ -359,29 +604,35 @@ function Contracts() {
 function Books() {
   return (
     <>
-      <p className="eyebrow">Books</p>
-      <h1>Two readers, one shape</h1>
+      <p className="eyebrow">Market reference</p>
+      <h1>From book data to an accepted quote.</h1>
       <p>
-        IHyperCoreBook.read returns bid, ask, mid, slippage in bps, a core height, and a timestamp. The position does not call a HyperCore precompile. It calls whichever reader was set in the constructor.
+        Match's reference helper reads the HyperCore HYPE/USDC book, checks the
+        source timestamp and walks the ask levels for the size it can buy within
+        the entered USDC budget. It suggests a 10 bps LP spread. Snapshot age
+        over 15 seconds, invalid levels and insufficient depth reject the
+        reference.
       </p>
-      <h2>Scripted book</h2>
+      <h2>The LP approves the price</h2>
       <p>
-        isScripted returns true. read stamps block.timestamp, so the snapshot does not expire during a demo. The owner sets bid, ask, slippage, and core height. This is the reader attached to the live position, so Shift, Advance, and Return are available.
+        The reference helps participants agree a quote. The LP signs the amounts
+        and complete trade terms. After source funding, those amounts remain
+        fixed for that fill. Market movement during the reservation can affect
+        the LP's result.
       </p>
-      <h2>Keeper book</h2>
+      <h2>Original Desk keeper</h2>
       <p>
-        isScripted returns false. A keeper posts a snapshot. read reverts with Stale when the post is older than 15 seconds, or when the bid is still zero. If this reader were attached, shift, advanceScripted, and returnScripted would revert with NotScripted. Stay and Pull would still run, and a stale post would revert preview and evaluate.
+        The Desk's KeeperBook checks the age of its on-chain post. Its legacy
+        read method uses a single posted slippage value and ignores the size
+        argument. The boundQuote helper binds size and direction into an
+        identifier. Match's size-aware reference calculation is performed
+        separately.
       </p>
-      <h2>Spot book for the second position</h2>
+      <h2>After an Elysium upgrade</h2>
       <p>
-        A second KeeperBook holds the HyperCore HYPE/USDC spot book, coin @107, for the WHYPE position. The keeper posts it every 5 seconds from the public API.
-      </p>
-      <p>
-        One exception is on record. On 21 October 2026, around 07:55 UTC, a stale quoted mid was walked from 78.58 to 81.83. Swaps were closed for the whole window, from block 12681625 to 12681947, so nothing traded during it. Nine snapshots were posted by hand, starting at block 12681647. Each had the bid equal to the ask, 40 bps above the last, and those prices did not come from HyperCore. The tenth posted the live book once the gap was inside 50 bps, and evaluate in block 12681931 stored 81.8335. A later deployment adds an owner requote, so the mid can be reset from a fresh read instead.
-      </p>
-      <h2>The ETH ladder on the desk</h2>
-      <p>
-        The desk also draws the live HyperCore ETH book from the public API. That ladder is a reference. It is not SDA's market, and the position does not read it when it decides.
+        A future integration could use native HyperCore reads and trading
+        support when available and validated. Match's current two-chain
+        settlement uses its source and destination contracts.
       </p>
     </>
   );
@@ -390,33 +641,72 @@ function Books() {
 function Testnet() {
   return (
     <>
-      <p className="eyebrow">Testnet</p>
-      <h1>Try the desk</h1>
+      <p className="eyebrow">Get started</p>
+      <h1>Try Match with three wallets.</h1>
+      <p>
+        Use an exit wallet, an LP wallet and an incoming depositor wallet. Each
+        needs test HYPE for transactions on the networks where it acts.
+      </p>
       <dl className="spec-list">
-        <dt>Chain</dt>
-        <dd>Elysium testnet, id 99801.</dd>
-        <dt>RPC</dt>
-        <dd>https://testnet-rpc.elysium.kinetiq.xyz</dd>
+        <dt>Elysium testnet</dt>
+        <dd>
+          Chain 99801 · <code>https://testnet-rpc.elysium.kinetiq.xyz</code>
+        </dd>
+        <dt>HyperEVM testnet</dt>
+        <dd>
+          Chain 998 · <code>https://rpc.hyperliquid-testnet.xyz/evm</code>
+        </dd>
+        <dt>Elysium HYPE faucet</dt>
+        <dd>
+          <a href={hypeFaucet}>{hypeFaucet}</a>
+        </dd>
         <dt>Explorer</dt>
         <dd>
           <a href={explorer}>{explorer}</a>
         </dd>
-        <dt>HYPE faucet</dt>
-        <dd>
-          <a href={hypeFaucet}>{hypeFaucet}</a>. Gas is HYPE.
-        </dd>
       </dl>
-      <h2>Test inventory</h2>
+      <h2>Prepare the participants</h2>
       <ol>
-        <li>Connect a wallet on Elysium testnet.</li>
-        <li>Get HYPE from the faucet above.</li>
-        <li>On the desk, use Get test tokens. The faucet sends 1,000 SDA and 1,000 mUSDC, then waits one hour for that address.</li>
-        <li>Evaluate, then Swap. Swap spends mUSDC and buys SDA at the quoted mid.</li>
+        <li>
+          LP opens <a href="/match/lp">LP inventory</a>, creates a position,
+          wraps test HYPE and deposits WHYPE.
+        </li>
+        <li>
+          Exit wallet opens <a href="/match">Exit</a>, gets test mUSDC and
+          enters the incoming participant's wallet.
+        </li>
+        <li>
+          Exit prepares a request, saves its private recovery file and shares
+          the public LP link.
+        </li>
+        <li>LP reviews the exact terms and returns the signed public link.</li>
+        <li>
+          Exit reserves its USDC. Depositor opens its link and locks HyperEVM
+          HYPE.
+        </li>
+        <li>
+          Exit chooses Receive my HYPE and confirms the claim and withdrawal.
+          The executor or manual Recovery action finishes Elysium settlement.
+        </li>
       </ol>
-      <p>Deposit, Set scripted book, Link spot, Shift, Advance, and Return stay on the LP wallet. Another wallet can read the position and, once it holds mUSDC, Swap while the position is Quoted.</p>
-      <h2>The live position</h2>
+      <h2>Run the timeout trial</h2>
       <p>
-        The same desk also shows a second position. Its base is canonical WHYPE. A keeper posts the HyperCore HYPE/USDC book, coin @107. Swap on that position reads the snapshot in the same transaction. The quote is still mUSDC. The slice stays in the contract. This is not an order on HyperCore. If the keeper is not posting, the snapshot is stale and the swap reverts.
+        Fund a source and destination, then allow their deadlines to pass
+        without revealing the secret. Recovery enables the eligible refund
+        actions. Check the full HyperEVM payment and unused gas allowance, the
+        exit's original USDC, and the LP's restored available WHYPE.
+      </p>
+      <h2>Save the recovery file</h2>
+      <p>
+        The public request can be shared. Keep the secret in the exit browser or
+        private recovery file. Recovery can restore that file after importing
+        the matching public request. Browser history keeps recent public
+        requests.
+      </p>
+      <h2>Explore the submitted Desk</h2>
+      <p>
+        Open <a href="/desk">Desk</a> to try SDA/mUSDC and its WHYPE position.
+        The scripted HyperCore leg remains part of that original demonstration.
       </p>
     </>
   );
@@ -425,26 +715,125 @@ function Testnet() {
 function Roadmap() {
   return (
     <>
-      <p className="eyebrow">Roadmap</p>
-      <h1>What is next</h1>
-      <p>The testnet desk is the part that runs today. Three things are still in front of a live quote:</p>
-      <ul>
-        <li>Canonical USDC in place of mUSDC.</li>
-        <li>A keeper snapshot of the listed token's own HyperCore book, fresh within 15 seconds, used by evaluate.</li>
-        <li>The slice leaving the scripted ledger and resting on that LP's own HyperCore account.</li>
-      </ul>
-      <h2>What this deployment is not</h2>
-      <ul>
-        <li>An order on HyperCore.</li>
-        <li>A shared inventory pool.</li>
-        <li>A perp.</li>
-        <li>A Shift token. There is none today.</li>
-      </ul>
-      <h2>Later: a governance token</h2>
+      <p className="eyebrow">Release path</p>
+      <h1>From testnet evidence to production.</h1>
+      <h2>Testnet implementation</h2>
       <p>
-        After mainnet, once LPs are using Shift, a token may govern the decisions shared across positions: the protocol fee, the default band, and which book readers and keepers are allowed. Nothing above depends on it. Timing depends on adoption, and it will be announced publicly first.
+        The application includes separate LP positions, full-term signed quotes,
+        two-chain escrow, native payouts, campaign-limited LP bonus,
+        original-asset refunds, public request links, private recovery files and
+        settlement monitoring. Current addresses are on the Deployment page.
       </p>
-      <p>Until the write path from Elysium to that LP's HyperCore account exists, the HyperCore leg stays scripted and the desk keeps the testnet line on screen.</p>
+      <h2>Validation</h2>
+      <p>
+        The 6 November 2026 test run completed actual two-chain settlement,
+        native payouts, deadline-based refunds and a three-wallet browser flow.
+        Repeat these checks after deployment. Compare received HYPE, gas,
+        waiting time and failed matches with available routes. Keep
+        team-generated test trades separate from independent demand.
+      </p>
+      <h2>Operation</h2>
+      <p>
+        The executor and watcher need an always-on deployment, a funded gas
+        wallet and monitored RPC access. Cursor's deployment handoff includes
+        the service configuration and testnet receipts.
+      </p>
+      <h2>Before mainnet</h2>
+      <p>
+        Verify production token mappings, independently review the cross-chain
+        timing model, set measured finality and timeout parameters, agree user
+        and LP exposure caps, and complete partner and liquidity pilots.
+        Canonical USDC replaces the test mock in a separately validated
+        production deployment.
+      </p>
+      <h2>Later extensions</h2>
+      <p>
+        Broader discovery and automatic coordination, multiple LP fills,
+        optional inventory rebalancing and validated HyperCore integrations can
+        expand the initial route. Adoption and measured execution quality guide
+        those choices.
+      </p>
+    </>
+  );
+}
+
+function MatchGuide() {
+  return (
+    <>
+      <p className="eyebrow">Testnet Match</p>
+      <h1>Know where your funds are.</h1>
+      <p>
+        Match combines an Elysium LP quote with an incoming HyperEVM depositor.
+        The exit user pays test mUSDC on Elysium and receives native test HYPE
+        on HyperEVM.
+      </p>
+      <h2>Prepare and share a request</h2>
+      <p>
+        Enter your USDC amount and the incoming participant's wallet. In this
+        coordinated testnet trial, arrange an LP and depositor before funding.
+        Prepare a public request, save your private recovery file, and copy the
+        LP link. Only the exit wallet should know the secret.
+      </p>
+      <h2>Review the signed quote</h2>
+      <p>
+        The LP approves exact amounts, recipients, gas budgets, bonus and
+        deadlines. Import the signed link to review what each participant
+        receives. Funding reserves the exit's USDC and the LP's WHYPE together
+        on Elysium.
+      </p>
+      <h2>Commit the other side</h2>
+      <p>
+        The depositor checks the funded source and locks HYPE on HyperEVM. The
+        exit user can then choose Receive HYPE. Two wallet confirmations claim
+        and withdraw the payment on HyperEVM.
+      </p>
+      <h2>Finish settlement</h2>
+      <p>
+        A relayer observes the confirmed HyperEVM claim and settles Elysium. The
+        LP receives USDC. HYPE becomes claimable for the depositor, LP bonus,
+        protocol fee and any executor gas allowance. Recovery also offers manual
+        settlement and credit collection.
+      </p>
+      <h2>Refund deadlines</h2>
+      <p>
+        If the destination claim deadline passes without a claim, the depositor
+        can refund the full HyperEVM lock including its unused gas budget. After
+        the later Elysium refund deadline, an unsettled source can return the
+        original USDC and WHYPE. Gas already spent on transactions remains a
+        cost.
+      </p>
+      <p>
+        A claimed destination followed by an Elysium outage longer than the
+        safety window creates a timing risk. Keep the recovery file and allow
+        the executor to finish the second leg promptly. The app displays the
+        separate deadlines before funds are committed.
+      </p>
+      <h2>Provide liquidity</h2>
+      <p>
+        Create your own position, wrap test HYPE and deposit WHYPE. Set a
+        reservation limit and pause new fills when needed. Available WHYPE and
+        earned USDC can be withdrawn. Reserved WHYPE remains committed until
+        settlement or refund. Selling WHYPE builds a USDC balance, so you may
+        need to replenish inventory.
+      </p>
+      <p>
+        The LP earns the spread in its approved quote. During the campaign it
+        can also earn 20% of the collected protocol fee, within the 30-day
+        campaign and cap. Bonus is reserved per accepted fill. Inventory price
+        changes and gas affect the LP's result.
+      </p>
+      <h2>Testnet wallet</h2>
+      <p>
+        The project wallet, source administrator, seeded LP owner, quote signer
+        and treasury are 0x1329818d4a89a1ea42e9F78c84009A79b8F269f2. Deployment
+        addresses are recorded in the repository. Use the separate Elysium and
+        HyperEVM testnet networks for each leg.
+      </p>
+      <p>
+        <a href="/match">Open Match</a> ·{" "}
+        <a href="/match/recovery">Open Recovery</a> ·{" "}
+        <a href="/docs/testnet">Testnet networks and faucet</a>
+      </p>
     </>
   );
 }

@@ -1,166 +1,52 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
-import { Mark } from "./Logo";
-import { decisionOrder, decisions, PositionDiagram, StateTrack, type Decision } from "./PositionStates";
-import { useInView, usePath, useReducedMotion } from "./router";
-import { deskPath, matchPath, SiteFooter, SiteHeader, TestnetNote } from "./site";
+import {useState} from "react";
+import {Mark} from "./Logo";
+import {SiteHeader,SiteFooter,deskPath,matchPath} from "./site";
+import "./landing.css";
 
-const headline = "Keep the Elysium quote from becoming the stale side.";
-const CYCLE_MS = 4200;
-const step = (index: number) => ({ "--i": index }) as CSSProperties;
-const INTRO_MS = 1100;
-
-export function Landing() {
-  const path = usePath();
-  const reduced = useReducedMotion();
-  const [started, setStarted] = useState(false);
-  const [state, setState] = useState<Decision>("Stay");
-  const [auto, setAuto] = useState(true);
-  const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setStarted(true), reduced ? 0 : INTRO_MS);
-    return () => clearTimeout(timer);
-  }, [reduced]);
-
-  const cycling = started && auto && !reduced;
-
-  useEffect(() => {
-    if (!cycling || paused) return;
-    const timer = setTimeout(() => {
-      setState((current) => decisionOrder[(decisionOrder.indexOf(current) + 1) % decisionOrder.length]);
-    }, CYCLE_MS);
-    return () => clearTimeout(timer);
-  }, [cycling, paused, state]);
-
-  const shown: Decision = reduced && auto ? "Shift" : state;
-
-  function choose(name: Decision) {
-    setAuto(false);
-    setState(name);
-  }
-
-  return (
-    <div className="site landing">
-      <SiteHeader path={path} />
-      <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <Mark size={52} className="hero-mark" />
-            <p className="eyebrow seq" style={step(1)}>
-              One LP. One position.
-            </p>
-            <h1 className="hero-title">
-              {headline.split(" ").map((word, index) => (
-                <Fragment key={index}>
-                  <span className="word" style={step(index + 2)}>
-                    {word}
-                  </span>{" "}
-                </Fragment>
-              ))}
-            </h1>
-            <p className="lede seq" style={step(11)}>
-              When the Elysium quote falls behind the HyperCore book, the LP is the stale side. Stay and Pull follow the book. Shift is the owner's move.
-            </p>
-            <div className="state-tabs seq" style={step(12)} role="group" aria-label="Decisions">
-              {decisionOrder.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`state-tab ${name}`}
-                  aria-pressed={started && shown === name}
-                  onClick={() => choose(name)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-            <div className="hero-actions seq" style={step(13)}>
-              <a className="btn primary" href={deskPath}>
-                Open the desk
-              </a>
-              <a className="btn quiet" href={matchPath}>
-                Match HYPE
-              </a>
-            </div>
-          </div>
-          <div
-            className="hero-figure seq"
-            style={step(9)}
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocus={() => setPaused(true)}
-            onBlur={() => setPaused(false)}
-          >
-            <PositionDiagram
-              state={started ? shown : "Idle"}
-              timer={cycling && !paused ? { key: `${state}`, ms: CYCLE_MS } : null}
-            />
-          </div>
-        </section>
-
-        <section className="decisions-section" aria-labelledby="decisions-title">
-          <p className="section-label" id="decisions-title">
-            Three decisions
-          </p>
-          <div className="decisions">
-            {decisions.map((decision, index) => (
-              <DecisionCard key={decision.name} name={decision.name} copy={decision.copy} index={index} />
-            ))}
-          </div>
-          <TestnetNote text="The desk keeps the submitted position on a scripted book, and a second position that marks WHYPE against the live HYPE book. Both legs stay in the contract. This is not an order on HyperCore." />
-        </section>
-
-        <section className="decisions-section" aria-labelledby="match-title">
-          <p className="section-label" id="match-title">
-            Match
-          </p>
-          <article className="decision in">
-            <div className="decision-top">
-              <h2>Exit mUSDC for HYPE</h2>
-            </div>
-            <p>
-              Match is a second path on testnet. An exit wallet pays mUSDC on Elysium. A community LP supplies the WHYPE. A depositor locks native HYPE on HyperEVM. The quote shows what each side receives before anyone signs.
-            </p>
-            <p>
-              mUSDC is a mock. The HYPE and the WHYPE stay in the Match contracts until claim and settlement. A claimed HyperEVM lock is not an unconditional refund on Elysium.
-            </p>
-            <a className="btn quiet" href={matchPath}>
-              Match HYPE
-            </a>
-          </article>
-        </section>
-
-        <section className="closing">
-          <a className="btn primary" href={deskPath}>
-            Open the desk
-          </a>
-          <a className="btn quiet" href="/docs">
-            Read the docs
-          </a>
-        </section>
-      </main>
-      <SiteFooter />
+export function Landing(){
+ const [route,setRoute]=useState<"exit"|"deposit">("exit");
+ return <div className="site shift-home">
+  <SiteHeader path="/"/>
+  <main>
+   <section className="home-hero">
+    <div className="home-intro">
+     <p className="home-network">Elysium / HyperEVM</p>
+     <h1>USDC on Elysium.<br/><span>HYPE on HyperEVM.</span></h1>
+     <p className="home-lede">Turn Elysium USDC into HyperEVM HYPE through a community LP and someone moving the other way.</p>
+     <div className="home-actions">
+      <a className="btn primary" href={matchPath}>Try testnet Match <span aria-hidden="true">↗</span></a>
+      <a className="btn quiet" href={matchPath+"/lp"}>Provide liquidity</a>
+     </div>
+     <p className="home-testnet">Testnet is open. Quotes use mUSDC and test HYPE.</p>
     </div>
-  );
-}
-
-function DecisionCard({ name, copy, index }: { name: Decision; copy: string; index: number }) {
-  const ref = useRef<HTMLElement>(null);
-  const seen = useInView(ref);
-  const [replay, setReplay] = useState(0);
-  return (
-    <article
-      ref={ref}
-      className={`decision ${name}${seen ? " in" : ""}`}
-      style={step(index)}
-      onMouseEnter={() => seen && setReplay((count) => count + 1)}
-    >
-      <div className="decision-top">
-        <h2>{name}</h2>
-        <span className="decision-index">0{index + 1}</span>
-      </div>
-      <StateTrack key={replay} state={name} play={seen} />
-      <p>{copy}</p>
-    </article>
-  );
+    <div className="home-preview">
+     <div className="home-preview-top"><Mark size={32}/><span>Match preview</span><span className="home-example">Illustrative quote</span></div>
+     <div className="home-route-switch" aria-label="Preview route">
+      <button type="button" aria-pressed={route==="exit"} onClick={()=>setRoute("exit")}>Exit Elysium</button>
+      <button type="button" aria-pressed={route==="deposit"} onClick={()=>setRoute("deposit")}>Enter Elysium</button>
+     </div>
+     <div className="home-amount"><span>You send · {route==="exit"?"Elysium":"HyperEVM"}</span><strong>{route==="exit"?"4.00":"0.0499"} <small>{route==="exit"?"mUSDC":"HYPE"}</small></strong></div>
+     <div className="home-route-line"><span/ ><span aria-hidden="true">↓</span><span/></div>
+     <div className="home-amount home-receive"><span>You receive · {route==="exit"?"HyperEVM":"Elysium"}</span><strong>{route==="exit"?"0.0499":"0.049975"} <small>HYPE</small></strong></div>
+     <dl className="home-breakdown"><div><dt>Protocol fee</dt><dd>0.000025 HYPE</dd></div><div><dt>Community LP supplies</dt><dd>0.05 WHYPE</dd></div></dl>
+     <p className="home-preview-note">Example before gas. Your signed quote fixes amounts, fees and deadlines.</p>
+     <a className="btn primary" href={route==="exit"?matchPath:matchPath+"/deposit"}>{route==="exit"?"Build an exit quote":"Explore deposits"}</a>
+    </div>
+   </section>
+   <section className="home-how" aria-labelledby="home-how-title">
+    <div className="home-section-head"><p className="home-network">How Match works</p><h2 id="home-how-title">Three participants.<br/>One set of agreed terms.</h2></div>
+    <div className="home-roles">
+     <article><span className="home-role">Exit user</span><h3>Start with USDC.</h3><p>Choose your amount and HyperEVM recipient. Keep your recovery secret private and share the public request with an LP.</p></article>
+     <article><span className="home-role">Community LP</span><h3>Supply the quote.</h3><p>Commit WHYPE from your own position. Receive USDC and a quoted share of the protocol fee after settlement.</p></article>
+     <article><span className="home-role">Incoming depositor</span><h3>Meet on the other side.</h3><p>Lock HYPE on HyperEVM for the named exit. Receive HYPE on Elysium when the trade settles.</p></article>
+    </div>
+   </section>
+   <section className="home-liquidity">
+    <div><p className="home-network">Community liquidity</p><h2>Your inventory.<br/>Your limits.</h2><p>Set how much WHYPE a fill can reserve. Withdraw your available inventory and USDC proceeds. Track reserved funds and claim native HYPE rewards from your position.</p><a className="btn" href={matchPath+"/lp"}>Open LP inventory ↗</a></div>
+    <div className="home-principles"><div><strong>Separate positions</strong><p>Each LP controls their own inventory and quote signer.</p></div><div><strong>Fees from settled fills</strong><p>LP bonus comes from the protocol fee, within the campaign cap and deadline.</p></div><div><strong>A visible way back</strong><p>Check each chain's state and claim or refund when its contract conditions allow.</p></div></div>
+   </section>
+   <section className="home-desk"><div><p className="home-network">The original Shift Desk</p><h2>Follow the book.<br/>Manage your position.</h2><p>Explore Stay, Pull and the scripted Shift leg from our original Elysium testnet desk.</p></div><a className="btn" href={deskPath}>Explore the Desk ↗</a></section>
+   <section className="home-ready"><h2>Choose your side of the match.</h2><div className="home-actions"><a className="btn primary" href={matchPath}>Exit to HyperEVM</a><a className="btn" href={matchPath+"/deposit"}>Enter Elysium</a><a className="btn quiet" href="/docs">Read the docs ↗</a></div><p>Both chains need to be available within the signed deadlines. Recovery follows the state of each leg.</p></section>
+  </main><SiteFooter/>
+ </div>;
 }

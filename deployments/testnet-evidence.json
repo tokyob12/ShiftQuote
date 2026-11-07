@@ -1,0 +1,56 @@
+{
+  "readAt": "2026-11-06T23:05:14.035Z",
+  "source": "0x4ed40397d4c054d265fbe377e83b1063840e7cf7",
+  "dest": "0x35578ca58726e86bbfa10526dd7d571923ddd3d9",
+  "scenario": "refund",
+  "transactions": [
+    {
+      "step": "fund depositor",
+      "hash": "0x19b97f0a26e30bb1fbfffa99fbe373ac87f9e20f37e42402f55370a38cb14391"
+    },
+    {
+      "step": "mint test USDC",
+      "hash": "0xd931f309447aa0b28dda58073480ef9c6205ed96a392b9867ca8b28e0b2848dc"
+    },
+    {
+      "step": "approve test USDC",
+      "hash": "0xa1704c42f41e3106dcc3277e197927d63c85ec197e50d40410beec9439344c65"
+    },
+    {
+      "step": "success fund",
+      "hash": "0x5120b938332dd5fa1118890190d7b5f1c390ecbd57ad90380066bc0adca903a2"
+    },
+    {
+      "step": "success lock",
+      "hash": "0x4bbd23dfffce1d8f99733354ca9ca2e62c56508cf883573fc47c2fa5b13d4cc1"
+    },
+    {
+      "step": "destination claim",
+      "hash": "0xd370460e1d3af9a293c0f0e84d03bfadd302a84a1ff1847d18ce8bb244ffff9b"
+    },
+    {
+      "step": "destination take",
+      "hash": "0x21cb574e31cc39cc618832d43fcac81e1fa490c09fe65c70f0c61f987515438a"
+    },
+    {
+      "step": "refund fund",
+      "hash": "0x150a61327b9a2be432b4e154e439c141f020b42f785071a0f1eaf1dc27aebb17"
+    },
+    {
+      "step": "refund lock",
+      "hash": "0xc1c92386d8a832d40151074f76c740229248ec0c1651212c9ee5ed8941fe7f03"
+    },
+    {
+      "step": "destination refund",
+      "hash": "0x85e9192752b839a38646f7e0d7057a57b64d3e1527cf2328a1c2e24a686339d3"
+    },
+    {
+      "step": "refund take",
+      "hash": "0x32668b51636777926b9442752ac6a8860696272325fad6cc9e363deb6a6d9001"
+    },
+    {
+      "step": "source refund",
+      "hash": "0x2592a1eddff3e1131086acdce16298859b1854eea46328f6a3067ae91dba7207"
+    }
+  ]
+}

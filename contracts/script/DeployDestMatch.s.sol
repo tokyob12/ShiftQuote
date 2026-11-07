@@ -8,6 +8,7 @@ import {DestMatch} from "../src/DestMatch.sol";
 contract DeployDestMatch is Script {
     function run() external {
         uint256 key = vm.envUint("SHIFT_PRIVATE_KEY");
+        require(block.chainid == 998, "testnet only");
         vm.startBroadcast(key);
         DestMatch dest = new DestMatch(20, 5);
         vm.stopBroadcast();

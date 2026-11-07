@@ -9,14 +9,12 @@ export const matchPath = "/match";
 export const matchIsHome = false;
 
 export const testnetLine =
-  "The HyperCore leg is scripted on testnet. Tokens stay in the contract. This is not an order on HyperCore.";
+  "Shift runs on Elysium and HyperEVM testnets. Match uses test mUSDC and HYPE.";
 
 const siteLinks = [
   { href: deskPath, label: "Desk" },
   { href: matchPath, label: "Match" },
   { href: "/docs", label: "Docs" },
-  { href: "/docs/how-it-works", label: "How it works" },
-  { href: "/docs/why-shift", label: "Why Shift" },
 ] as const;
 
 export function SiteHeader({ path }: { path: string }) {
@@ -35,8 +33,8 @@ export function SiteHeader({ path }: { path: string }) {
           GitHub
         </a>
       </nav>
-      <a className="btn" href={deskPath}>
-        Open the desk
+      <a className="btn" href={matchPath}>
+        Open Match
       </a>
     </header>
   );

@@ -11,13 +11,16 @@ interface IShiftToken {
 ///         stays until the Match escrow settles or refunds the fill.
 ///         The quote signer is not this contract. Only the owner withdraws.
 contract LpPosition {
-    address public immutable owner;
+    address public owner;
+    address public pendingOwner;
     IShiftToken public immutable whype;
     IShiftToken public immutable usdc;
     address public immutable escrow;
 
     address public signer;
     uint256 public quoteNonce;
+    uint256 public maxFill = type(uint256).max;
+    uint256 public maxReserved = type(uint256).max;
     uint256 public available;
     uint256 public reserved;
     uint256 public usdcEarned;
@@ -57,12 +60,33 @@ contract LpPosition {
         escrow = escrow_;
     }
 
+    function transferOwnership(address next) external onlyOwner {
+        if (next == address(0)) revert NotOwner();
+        pendingOwner = next;
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotOwner();
+        owner = msg.sender;
+        signer = msg.sender;
+        pendingOwner = address(0);
+        quoteNonce += 1;
+    }
+
     /// @notice The signer can price a fill. Withdrawal stays with the owner.
     function setSigner(address next) external onlyOwner {
         if (next == address(0)) revert NotOwner();
         signer = next;
         emit SignerSet(next);
     }
+
+    function setLimits(uint256 perFill, uint256 totalReserved) external onlyOwner {
+        if (perFill == 0 || totalReserved < perFill) revert Insufficient();
+        maxFill = perFill;
+        maxReserved = totalReserved;
+    }
+
+    function invalidateQuotes() external onlyOwner { quoteNonce += 1; }
 
     function consumeNonce(uint256 nonce) external onlyEscrow {
         if (nonce != quoteNonce) revert BadNonce();
@@ -93,7 +117,7 @@ contract LpPosition {
 
     function reserve(uint256 amount) external onlyEscrow {
         if (paused) revert Paused();
-        if (amount == 0 || amount > available) revert Insufficient();
+        if (amount == 0 || amount > available || amount > maxFill || reserved + amount > maxReserved) revert Insufficient();
         available -= amount;
         reserved += amount;
         _push(whype, escrow, amount);
@@ -131,6 +155,7 @@ contract LpFactory {
     IShiftToken public immutable whype;
     IShiftToken public immutable usdc;
 
+    mapping(address => bool) public isPosition;
     event Created(address indexed position, address indexed owner);
 
     constructor(address escrow_, IShiftToken whype_, IShiftToken usdc_) {
@@ -142,6 +167,7 @@ contract LpFactory {
 
     function create() external returns (LpPosition position) {
         position = new LpPosition(msg.sender, whype, usdc, escrow);
+        isPosition[address(position)] = true;
         emit Created(address(position), msg.sender);
     }
 }

@@ -1399,3 +1399,5 @@ label {
     transition-delay: 0ms !important;
   }
 }
+
+.docs-body { overflow-wrap: anywhere; min-width: 0; }

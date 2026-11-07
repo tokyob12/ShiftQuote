@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import {marketQuote,baseForBudget} from "../../apps/web/src/matchPricing.ts";
+const now=Date.now();
+const levels=[{px:"80",sz:"1"},{px:"81",sz:"1"}];
+assert.equal(marketQuote(levels,10n**18n,now,0n,now),80000000n);
+assert.equal(marketQuote(levels,2n*10n**18n,now,0n,now),161000000n);
+assert.equal(marketQuote(levels,10n**18n,now,10n,now),80080000n);
+assert.throws(()=>marketQuote(levels,3n*10n**18n,now,0n,now),/depth/);
+assert.throws(()=>marketQuote(levels,1n,now-16000,0n,now),/stale/);
+assert.throws(()=>marketQuote(levels,1n,now+6000,0n,now),/stale/);
+console.log("6 market pricing assertions passed");
+assert.equal(baseForBudget(levels,80000000n,now,0n,now),10n**18n);
+assert.equal(baseForBudget(levels,161000000n,now,0n,now),2n*10n**18n);
+assert.throws(()=>baseForBudget(levels,200000000n,now,0n,now),/depth/);
+assert.throws(()=>baseForBudget(levels,1n,now,0n,now),/minimum/);
+console.log("4 budget inversion assertions passed");

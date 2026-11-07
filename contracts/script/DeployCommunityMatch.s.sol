@@ -20,14 +20,20 @@ contract DeployCommunityMatch is Script {
     function run() external {
         uint256 key = vm.envUint("SHIFT_PRIVATE_KEY");
         address treasury = vm.envOr("SHIFT_MATCH_TREASURY", vm.addr(key));
+        require(block.chainid == 99801, "testnet only");
+        address dest = vm.envAddress("SHIFT_MATCH_DEST");
         vm.startBroadcast(key);
-        SourceMatch source = new SourceMatch(treasury, 20, 5, 2_000, 1 hours, 1 ether);
+        SourceMatch source = new SourceMatch(treasury, 20, 5, 2_000, 5 minutes, 1 ether);
         LpFactory factory = new LpFactory(address(source), IShiftToken(WHYPE), IShiftToken(MUSDC));
+        source.configure(factory, 998, dest, true);
         LpPosition position = factory.create();
         IWHYPE whype = IWHYPE(WHYPE);
         whype.deposit{value: SEED}();
         if (!whype.approve(address(position), SEED)) revert SourceMatch.TransferFailed();
         position.deposit(SEED);
+        position.setSigner(treasury);
+        position.transferOwnership(treasury);
+        source.transferAdmin(treasury);
         vm.stopBroadcast();
         console.log("source", address(source));
         console.log("factory", address(factory));

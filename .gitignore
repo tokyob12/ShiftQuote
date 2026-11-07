@@ -8,3 +8,14 @@ node_modules/
 dist/
 keeper/.watch-state.json
 keeper/.match-watch-state.json
+
+keeper/.match-index.json
+keeper/.match-e2e-recovery.json
+keeper/.match-e2e-keys.json
+apps/web/.vercel/
+
+keeper/.match-dest-index.json
+
+keeper/.match-browser-recovery.json
+
+keeper/.match-*.tmp
