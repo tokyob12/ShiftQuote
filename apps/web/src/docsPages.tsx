@@ -33,9 +33,17 @@ function Home() {
       <p className="eyebrow">Shift documentation</p>
       <h1>Desk liquidity meets cross-chain Match.</h1>
       <p>
-        Shift Match connects an Elysium USDC exit to a community LP and a
-        participant bringing HYPE from HyperEVM. One signed set of terms fixes
-        what all three participants send and receive.
+        Shift has two parts. Desk manages an LP’s quote with Stay, Pull and a
+        scripted Shift inventory leg. Match adds a USDC-to-HYPE exit route,
+        connecting an LP’s Elysium inventory with an incoming HyperEVM depositor.
+      </p>
+      <h2>Start with Desk or Match</h2>
+      <p>
+        Open <a href="/desk">Desk</a> for the submitted demo and the live-book
+        WHYPE position. Open <a href="/match">Match</a> for the coordinated
+        cross-chain pilot. Desk and Match currently use separate positions;
+        the scripted Shift action does not fund a Match. Match LPs supply
+        inventory through the <a href="/match/lp">LP page</a>.
       </p>
       <p>
         The current application runs on Elysium testnet and HyperEVM testnet. It

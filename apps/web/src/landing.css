@@ -10,7 +10,7 @@
 .home-preview-top{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-size:14px}
 .home-example{margin-left:auto;color:var(--ink-3);font-size:11px}
 .home-route-switch{display:flex;background:var(--bg-deep);padding:4px;border-radius:8px;margin-bottom:20px}
-.home-route-switch button{flex:1;border:0;min-height:36px;font-size:13px;color:var(--ink-3)}
+.home-route-switch button{flex:1 1 0;min-width:0;white-space:normal;padding:8px;line-height:1.4;border:0;min-height:36px;font-size:13px;color:var(--ink-3)}
 .home-route-switch button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
 .home-amount{display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid var(--line);border-radius:10px;background:var(--inset)}
 .home-amount>span{font-size:12px;color:var(--ink-3)}
@@ -43,3 +43,33 @@
 .home-ready p{font-size:12px;line-height:1.7;color:var(--ink-3);max-width:520px;margin:auto}
 @media(max-width:760px){.home-hero{grid-template-columns:1fr;padding:48px 8px 56px;gap:40px}.home-intro h1{font-size:48px}.home-lede{font-size:16px}.home-preview{padding:20px}.home-how,.home-liquidity,.home-desk,.home-ready{padding:40px 8px}.home-roles{grid-template-columns:1fr;gap:28px}.home-liquidity{grid-template-columns:1fr;gap:36px}.home-desk{display:block}.home-example{font-size:10px}.home-network{margin-bottom:18px}}
 @media(prefers-reduced-motion:reduce){.shift-home *{animation:none!important;transition:none!important}}
+
+/* Desk and Match share the landing page, with the submitted Desk first. */
+.home-desk-preview>.btn,.home-match-preview>.btn{width:100%}
+.home-desk-preview .diagram{margin:18px 0 20px;min-height:0}
+.home-decision-switch{display:flex;gap:8px}
+.home-decision-switch button{flex:1;min-height:40px;border:1px solid var(--line);border-radius:8px;color:var(--ink-3);font-size:13px}
+.home-decision-switch button[aria-pressed=true]{background:var(--surface-2);border-color:var(--line-2)}
+.home-decision-switch .stay[aria-pressed=true]{color:var(--stay)}
+.home-decision-switch .pull[aria-pressed=true]{color:var(--pull)}
+.home-decision-switch .shift[aria-pressed=true]{color:var(--shift)}
+.home-products,.home-connection{border-top:1px solid var(--line);padding:64px 24px}
+.home-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.home-product-card{display:flex;flex-direction:column;align-items:flex-start;padding:30px;background:var(--surface);border:1px solid var(--line-2);border-radius:16px}
+.home-product-label{display:flex;justify-content:space-between;gap:12px;width:100%;font-family:var(--mono);font-size:12px;color:var(--gold);margin-bottom:24px}
+.home-product-label span{font-family:var(--sans);font-size:11px;color:var(--ink-3)}
+.home-product-card h3{font-size:28px;line-height:1.25;font-weight:500;letter-spacing:-.035em;margin-bottom:20px}
+.home-product-card>p:not(.home-product-label),.home-product-card li,.home-connection p{font-size:14px;color:var(--ink-3);line-height:1.75}
+.home-product-card ul{padding-left:18px;margin:22px 0;display:grid;gap:12px}
+.home-product-card strong{font-weight:500;color:var(--ink)}
+.home-product-card .home-product-note{font-size:12px;margin-bottom:26px}
+.home-product-card .home-actions{margin-top:auto}
+.home-text-link{font-size:13px;text-underline-offset:4px;color:var(--ink-2)}
+.home-connection .home-section-head p:last-child{max-width:610px;margin-top:24px}
+.home-connection-steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+.home-connection-steps li>span{font-family:var(--mono);font-size:12px;color:var(--gold)}
+.home-connection-steps h3{font-size:20px;font-weight:500;margin:14px 0}
+.home-connection-note{border-left:2px solid var(--gold);padding:12px 18px;background:var(--surface);margin:32px 0 20px}
+@media(max-width:760px){.home-products,.home-connection{padding:40px 8px}.home-product-grid,.home-connection-steps{grid-template-columns:1fr}.home-product-card{padding:24px}.home-product-card h3{font-size:25px}.home-product-label{flex-wrap:wrap}.home-preview-top{flex-wrap:wrap}.home-preview .home-route-switch button{padding:8px;line-height:1.4}.home-connection-steps{gap:28px}}
+.home-hero>div{min-width:0}
+@media(max-width:760px){.home-hero{grid-template-columns:minmax(0,1fr)}.home-intro h1{font-size:clamp(36px,11vw,48px)}.home-desk-preview .diagram{padding:16px}.home-desk-preview .diagram-venues{font-size:11px}}

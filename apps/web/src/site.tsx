@@ -5,7 +5,7 @@ export const xUrl = "https://x.com/shift_hl";
 export const deskPath = "/desk";
 export const matchPath = "/match";
 
-// Pilot gate. Match stays off the homepage until keeper/src/pilot-gate.ts passes.
+// Keep the shared Desk + Match landing at /. A dedicated Match homepage uses the pilot gate.
 export const matchIsHome = false;
 
 export const testnetLine =
@@ -33,8 +33,8 @@ export function SiteHeader({ path }: { path: string }) {
           GitHub
         </a>
       </nav>
-      <a className="btn" href={matchPath}>
-        Open Match
+      <a className="btn" href={path.startsWith(matchPath) ? matchPath : deskPath}>
+        {path.startsWith(matchPath) ? "Open Match" : "Open Desk"}
       </a>
     </header>
   );
