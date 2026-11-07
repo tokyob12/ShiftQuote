@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient } from "viem";
-import { bookAbi, erc20Abi, positionV2Abi } from "./abi";
+import { createPublicClient, createWalletClient, custom, http, verifyTypedData, type Address, type Hex, type WalletClient } from "viem";
+import { erc20Abi, positionV2Abi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Ladder, Route, Ticker } from "./DeskParts";
+import { decodeDeskQuote, signedDeskAbi, signedDeskAddress, signedDeskTypes } from "./signedDesk";
 
 const LOCATIONS = ["Uninitialized", "Quoted", "Pulled", "InTransit", "OnCoreIdle", "Resting"] as const;
 const DECISIONS = ["None", "Stay", "Pull", "Shift"] as const;
@@ -41,12 +42,6 @@ function formatUnits(value: bigint, decimals: number, digits = 4): string {
   return `${whole.toString()}.${frac}`;
 }
 
-function formatAge(seconds: number): string {
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  return `${Math.floor(seconds / 3600)}h ago`;
-}
-
 function parseUnits(value: string, decimals: number): bigint {
   const trimmed = value.trim();
   if (trimmed === "") return 0n;
@@ -66,14 +61,15 @@ export function LivePosition({
   const [view, setView] = useState<LiveView | null>(null);
   const [error, setError] = useState("");
   const [levels, setLevels] = useState<{ bids: Level[]; asks: Level[] } | null>(null);
+  const [bookTime, setBookTime] = useState<number | null>(null);
   const [bookError, setBookError] = useState("");
+  const [parkedBase, setParkedBase] = useState<bigint | null>(null);
   const [swapSize, setSwapSize] = useState("0.01");
   const [withdrawBase, setWithdrawBase] = useState("0.1");
   const [withdrawQuote, setWithdrawQuote] = useState("0");
 
   const refresh = useCallback(async () => {
     try {
-      const block = await publicClient.getBlock();
       const calls = [
         "owner",
         "location",
@@ -89,7 +85,7 @@ export function LivePosition({
       ] as const;
       const results = await publicClient.multicall({
         contracts: calls.map((functionName) => ({
-          address: deployments.v2.position,
+          address: signedDeskAddress,
           abi: positionV2Abi,
           functionName,
         })),
@@ -100,41 +96,12 @@ export function LivePosition({
         return item.result as T;
       };
       const location = Number(value<number>(1));
-      let preview = "No live decision.";
-      let bookAge = "—";
-      let bookStale = false;
-      let freshMid: bigint | null = null;
-      let previewDecision: number | null = null;
-      if (location === 1 || location === 2) {
-        try {
-          const previewResult = await publicClient.readContract({
-            address: deployments.v2.position,
-            abi: positionV2Abi,
-            functionName: "preview",
-          });
-          const [decision, mid, slippageBps, timestamp] = previewResult;
-          const age = Math.max(0, Number(block.timestamp) - Number(timestamp));
-          previewDecision = Number(decision);
-          preview = `${DECISIONS[previewDecision]} at ${formatUnits(mid, 18)} USDC, slippage ${slippageBps.toString()} bps`;
-          bookAge = `${age}s`;
-          freshMid = mid;
-        } catch (caught) {
-          const postedAt = await publicClient.readContract({
-            address: deployments.v2.keeperBook,
-            abi: bookAbi,
-            functionName: "postedAt",
-          });
-          const age = Math.max(0, Number(block.timestamp) - Number(postedAt));
-          const stale = postedAt === 0n || age > 15 || `${caught instanceof Error ? caught.message : caught}`.includes("0xd7815800");
-          if (stale) {
-            bookStale = true;
-            bookAge = postedAt === 0n ? "never" : formatAge(age);
-            preview = `The keeper is not posting, so the book is stale and swaps are paused. Last post: ${bookAge}.`;
-          } else {
-            preview = "Book read failed";
-          }
-        }
-      }
+      const parked = await publicClient.readContract({
+        address: deployments.v2.position,
+        abi: positionV2Abi,
+        functionName: "elysiumBase",
+      });
+      setParkedBase(parked);
       setView({
         owner: value(0),
         location,
@@ -147,11 +114,11 @@ export function LivePosition({
         transitBase: value(8),
         coreIdleBase: value(9),
         restingBase: value(10),
-        preview,
-        previewDecision,
-        bookAge,
-        bookStale,
-        freshMid,
+        preview: "",
+        previewDecision: null,
+        bookAge: "—",
+        bookStale: false,
+        freshMid: null,
       });
       setError("");
     } catch (caught) {
@@ -167,8 +134,9 @@ export function LivePosition({
         body: JSON.stringify({ type: "l2Book", coin: deployments.v2.spotCoin }),
       });
       if (!response.ok) throw new Error(`Book request failed (${response.status})`);
-      const body = (await response.json()) as { levels: [Level[], Level[]] };
+      const body = (await response.json()) as { time?: number; levels: [Level[], Level[]] };
       setLevels({ bids: body.levels[0].slice(0, 5), asks: body.levels[1].slice(0, 5) });
+      setBookTime(typeof body.time === "number" ? body.time : Date.now());
       setBookError("");
     } catch (caught) {
       setBookError(caught instanceof Error ? caught.message : "Could not read the HYPE book");
@@ -185,7 +153,7 @@ export function LivePosition({
     return () => clearInterval(timer);
   }, [refresh, loadBook]);
 
-  async function write(functionName: string, args: readonly unknown[], address: Address = deployments.v2.position, abi: typeof positionV2Abi | typeof erc20Abi = positionV2Abi) {
+  async function write(functionName: string, args: readonly unknown[], address: Address = signedDeskAddress, abi: readonly unknown[] = positionV2Abi) {
     if (!account || !window.ethereum) {
       onStatus("Connect a wallet first.");
       return false;
@@ -218,7 +186,17 @@ export function LivePosition({
 
   const isOwner = account !== null && view !== null && account.toLowerCase() === view.owner.toLowerCase();
   const locationName = view ? LOCATIONS[view.location] : "—";
-  const canEvaluate = (view?.location === 1 || view?.location === 2) && !view.bookStale;
+  const bookAgeSeconds = bookTime === null ? null : Math.max(0, Math.floor(Date.now() / 1000 - bookTime / 1000));
+  const bookStale = bookAgeSeconds === null || bookAgeSeconds > 15;
+  const topMid = levels?.bids[0] && levels.asks[0] ? (parseUnits(levels.bids[0].px, 18) + parseUnits(levels.asks[0].px, 18)) / 2n : null;
+  const deviation = view && topMid && view.quotedMidX18 > 0n ? ((topMid > view.quotedMidX18 ? topMid - view.quotedMidX18 : view.quotedMidX18 - topMid) * 10000n) / view.quotedMidX18 : null;
+  const previewDecision = deviation === null ? null : deviation > 50n ? 2 : 1;
+  const preview = bookStale
+    ? "The live book is older than 15 seconds, so the quote is paused."
+    : previewDecision === 2
+      ? `Pull at ${formatUnits(topMid ?? 0n, 18)} USDC. The move is outside 50 bps.`
+      : `Stay at ${formatUnits(topMid ?? 0n, 18)} USDC, inside 50 bps.`;
+  const canEvaluate = (view?.location === 1 || view?.location === 2) && !bookStale;
   const wantBase = (() => {
     try {
       return parseUnits(swapSize, 18);
@@ -230,22 +208,58 @@ export function LivePosition({
   const overSize = view !== null && !soldOut && wantBase > view.elysiumBase;
   const tone = view?.location === 1 ? "quoted" : view?.location === 2 ? "pulled" : view && view.location >= 3 ? "scripted" : "idle";
 
+  async function deskQuote(action: number, size: bigint) {
+    if (!account) throw new Error("Connect a wallet first.");
+    const response = await fetch("/route-api/desk-quote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ caller: account, action, size: size.toString() }),
+    });
+    const body = (await response.json()) as { error?: string; quote?: Record<string, string>; signature?: Hex };
+    if (!response.ok || !body.quote || !body.signature) throw new Error(body.error ?? "Quote service unavailable");
+    const quote = decodeDeskQuote(body.quote);
+    const signer = await publicClient.readContract({ address: signedDeskAddress, abi: signedDeskAbi, functionName: "quoteSigner" });
+    const valid = await verifyTypedData({
+      address: signer,
+      domain: { name: "Shift Signed Desk", version: "1", chainId: elysiumTestnet.id, verifyingContract: signedDeskAddress },
+      types: signedDeskTypes,
+      primaryType: "Quote",
+      message: quote,
+      signature: body.signature,
+    });
+    if (!valid || quote.caller.toLowerCase() !== account.toLowerCase() || quote.action !== action) throw new Error("Invalid signed quote");
+    return { quote, signature: body.signature };
+  }
+
+  async function signedCall(functionName: "evaluateSigned" | "requoteSigned" | "shiftSigned", action: number, size: bigint) {
+    onStatus("Requesting a signed quote…");
+    try {
+      const { quote, signature } = await deskQuote(action, size);
+      await write(functionName, [quote, signature], signedDeskAddress, signedDeskAbi);
+    } catch (caught) {
+      onStatus(caught instanceof Error ? caught.message : "Signed quote failed");
+    }
+  }
+
   async function approveAndSwap() {
-    if (!view) return;
+    if (!view || !account) return;
     const baseOut = parseUnits(swapSize, 18);
-    const mid = view.freshMid ?? view.quotedMidX18;
-    const usdcIn = (baseOut * mid) / 10n ** 30n;
+    const usdcIn = (baseOut * view.quotedMidX18) / 10n ** 30n;
     const maxUsdcIn = (usdcIn * 10050n) / 10000n + 1n;
-    const allowance = account
-      ? await publicClient.readContract({
-          address: deployments.quote,
-          abi: erc20Abi,
-          functionName: "allowance",
-          args: [account, deployments.v2.position],
-        })
-      : 0n;
-    if (allowance < maxUsdcIn && !(await write("approve", [deployments.v2.position, maxUsdcIn], deployments.quote, erc20Abi))) return;
-    await write("swap", [baseOut, maxUsdcIn]);
+    onStatus("Requesting a signed quote…");
+    try {
+      const { quote, signature } = await deskQuote(1, baseOut);
+      const allowance = await publicClient.readContract({
+        address: deployments.quote,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [account, signedDeskAddress],
+      });
+      if (allowance < maxUsdcIn && !(await write("approve", [signedDeskAddress, maxUsdcIn], deployments.quote, erc20Abi))) return;
+      await write("swapSigned", [baseOut, maxUsdcIn, quote, signature], signedDeskAddress, signedDeskAbi);
+    } catch (caught) {
+      onStatus(caught instanceof Error ? caught.message : "Signed quote failed");
+    }
   }
 
   return (
@@ -291,14 +305,17 @@ export function LivePosition({
               </div>
               <div>
                 <dt>Book age</dt>
-                <dd>{view.bookAge}</dd>
+                <dd>{bookAgeSeconds === null ? "—" : `${bookAgeSeconds}s`}</dd>
               </div>
               <div>
                 <dt>Swaps</dt>
                 <dd>{!view.swapsOpen ? "Closed" : soldOut ? "Sold out" : "Open"}</dd>
               </div>
             </dl>
-            <p className="hint">WHYPE marked against the HyperCore HYPE/USDC book. The slice stays in this contract. This is not an order on HyperCore.</p>
+            <p className="hint">WHYPE marked against the live HYPE book with a signed quote. The slice stays in this contract. This is not an order on HyperCore.</p>
+            {parkedBase !== null && parkedBase > 0n && (
+              <p className="hint">The previous position still holds {formatUnits(parkedBase, 18)} WHYPE and its swaps stay closed.</p>
+            )}
           </>
         ) : (
           <p className="hint loading">{error || "Reading the live position…"}</p>
@@ -313,12 +330,12 @@ export function LivePosition({
           <>
             <div className="next">
               <span className="next-label">Next decision</span>
-              <span key={view.preview} className="next-value">
-                {view.preview}
+              <span key={preview} className="next-value">
+                {preview}
               </span>
             </div>
             <div className="trade-bar">
-              <button className="primary evaluate" type="button" disabled={!account || !canEvaluate} onClick={() => void write("evaluate", [])}>
+              <button className="primary evaluate" type="button" disabled={!account || !canEvaluate} onClick={() => void signedCall("evaluateSigned", 3, view.elysiumBase)}>
                 Evaluate
               </button>
               <label className="trade-size">
@@ -334,9 +351,9 @@ export function LivePosition({
                 disabled={
                   !account ||
                   !view.swapsOpen ||
-                  view.bookStale ||
+                  bookStale ||
                   view.location !== 1 ||
-                  view.previewDecision === 2 ||
+                  previewDecision === 2 ||
                   soldOut ||
                   overSize ||
                   wantBase === 0n
@@ -348,12 +365,14 @@ export function LivePosition({
             </div>
             <p className="hint">
               {!view.swapsOpen
-                ? "Swaps are closed. Evaluate still reads the book."
+                ? "Swaps are closed."
+                : bookStale
+                  ? "The live book is older than 15 seconds, so Evaluate and Swap wait."
                 : soldOut
                   ? `Sold out. The position has no ${deployments.v2.baseSymbol} left to sell. The LP can deposit more.`
                   : overSize
                     ? `Only ${formatUnits(view.elysiumBase, 18)} ${deployments.v2.baseSymbol} is left. Lower the amount to buy.`
-                    : "Swap reads the book in the same transaction. Inside 50 bps it sells at the fresh mid. Outside the band it reverts. Payment is mUSDC."}
+                    : "Swap uses a fresh signed quote. Inside 50 bps it sells at the stored mid. Outside the band it reverts. Payment is mUSDC."}
             </p>
             {isOwner && (
               <div className="owner-block">
@@ -365,7 +384,7 @@ export function LivePosition({
                   <button type="button" disabled={!canEvaluate} onClick={() => void write("setSpotLinked", [!view.spotLinked])}>
                     {view.spotLinked ? "Unlink spot" : "Link spot"}
                   </button>
-                  <button type="button" disabled={!view.spotLinked || !canEvaluate} onClick={() => void write("shift", [])}>
+                  <button type="button" disabled={!view.spotLinked || !canEvaluate} onClick={() => void signedCall("shiftSigned", 5, view.elysiumBase)}>
                     Shift 25%
                   </button>
                   <button type="button" disabled={view.location !== 3 && view.location !== 4} onClick={() => void write("advanceScripted", [])}>
@@ -379,7 +398,7 @@ export function LivePosition({
                     Return
                   </button>
                   {deployments.v2.hasRequote && (
-                    <button type="button" disabled={view.location !== 2} onClick={() => void write("requote", [])}>
+                    <button type="button" disabled={view.location !== 2 || bookStale} onClick={() => void signedCall("requoteSigned", 4, view.elysiumBase)}>
                       Requote at book
                     </button>
                   )}
@@ -416,7 +435,7 @@ export function LivePosition({
           <h2>HYPE book</h2>
           <span className={`live${bookError ? " off" : levels ? " on" : ""}`}>{bookError ? "Offline" : "Live"}</span>
         </div>
-        <p className="hint">HyperCore HYPE/USDC, coin @107. The trade uses the keeper snapshot, not this ladder.</p>
+        <p className="hint">HyperCore HYPE/USDC, coin @107. Evaluate and Swap sign a quote from this book.</p>
         {bookError && <p className="hint">{bookError}</p>}
         {levels && <Ladder asks={levels.asks} bids={levels.bids} />}
       </section>
