@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { createPublicClient, createWalletClient, custom, http, verifyTypedData, type Address, type Hex, type WalletClient } from "viem";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPublicClient, createWalletClient, custom, http, parseAbiItem, verifyTypedData, type Address, type Hex, type WalletClient } from "viem";
 import { erc20Abi, positionV2Abi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
@@ -35,6 +35,21 @@ const publicClient = createPublicClient({
   transport: http(rpcUrl),
 });
 
+const deskDeployBlock = 25_552_255n;
+const quoteLogChunk = 50_000n;
+const quoteEvents = [
+  parseAbiItem("event Evaluated(uint8 decision, uint256 midX18)"),
+  parseAbiItem("event Requoted(uint256 previousMidX18, uint256 midX18)"),
+] as const;
+
+function formatAge(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
 function formatUnits(value: bigint, decimals: number, digits = 4): string {
   const base = 10n ** BigInt(decimals);
   const whole = value / base;
@@ -62,6 +77,10 @@ export function LivePosition({
   const [error, setError] = useState("");
   const [levels, setLevels] = useState<{ bids: Level[]; asks: Level[] } | null>(null);
   const [bookTime, setBookTime] = useState<number | null>(null);
+  const [quoteSetAt, setQuoteSetAt] = useState<number | null>(null);
+  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
+  const quoteFloor = useRef(deskDeployBlock);
+  const quoteScanBusy = useRef(false);
   const [bookError, setBookError] = useState("");
   const [parkedBase, setParkedBase] = useState<bigint | null>(null);
   const [swapSize, setSwapSize] = useState("0.01");
@@ -143,15 +162,59 @@ export function LivePosition({
     }
   }, []);
 
+  const loadQuoteTime = useCallback(async () => {
+    if (quoteScanBusy.current) return;
+    quoteScanBusy.current = true;
+    try {
+      const head = await publicClient.getBlockNumber();
+      let cursor = head;
+      let found: bigint | null = null;
+      const floor = quoteFloor.current;
+      while (cursor >= floor) {
+        const start = cursor - floor > quoteLogChunk ? cursor - quoteLogChunk : floor;
+        const logs = await publicClient.getLogs({
+          address: signedDeskAddress,
+          events: quoteEvents,
+          fromBlock: start,
+          toBlock: cursor,
+        });
+        if (logs.length > 0) {
+          found = logs[logs.length - 1].blockNumber ?? null;
+          break;
+        }
+        if (start === floor) break;
+        cursor = start - 1n;
+      }
+      if (found === null) {
+        quoteFloor.current = head > 1n ? head - 1n : head;
+        return;
+      }
+      const block = await publicClient.getBlock({ blockNumber: found });
+      quoteFloor.current = found;
+      setQuoteSetAt(Number(block.timestamp));
+    } catch {
+      // Keep the last known quote time. The next refresh tries again.
+    } finally {
+      quoteScanBusy.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     void refresh();
     void loadBook();
+    void loadQuoteTime();
     const timer = setInterval(() => {
       void refresh();
       void loadBook();
+      void loadQuoteTime();
     }, 4000);
     return () => clearInterval(timer);
-  }, [refresh, loadBook]);
+  }, [refresh, loadBook, loadQuoteTime]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowSeconds(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   async function write(functionName: string, args: readonly unknown[], address: Address = signedDeskAddress, abi: readonly unknown[] = positionV2Abi) {
     if (!account || !window.ethereum) {
@@ -177,6 +240,7 @@ export function LivePosition({
       await publicClient.waitForTransactionReceipt({ hash });
       onStatus(`${functionName} confirmed.`);
       await refresh();
+      await loadQuoteTime();
       return true;
     } catch (caught) {
       onStatus(caught instanceof Error ? caught.message : `${functionName} failed`);
@@ -186,8 +250,9 @@ export function LivePosition({
 
   const isOwner = account !== null && view !== null && account.toLowerCase() === view.owner.toLowerCase();
   const locationName = view ? LOCATIONS[view.location] : "—";
-  const bookAgeSeconds = bookTime === null ? null : Math.max(0, Math.floor(Date.now() / 1000 - bookTime / 1000));
-  const bookStale = bookAgeSeconds === null || bookAgeSeconds > 15;
+  const ladderAgeSeconds = bookTime === null ? null : Math.max(0, nowSeconds - Math.floor(bookTime / 1000));
+  const bookStale = ladderAgeSeconds === null || ladderAgeSeconds > 15;
+  const quoteAgeSeconds = quoteSetAt === null ? null : Math.max(0, nowSeconds - quoteSetAt);
   const topMid = levels?.bids[0] && levels.asks[0] ? (parseUnits(levels.bids[0].px, 18) + parseUnits(levels.asks[0].px, 18)) / 2n : null;
   const deviation = view && topMid && view.quotedMidX18 > 0n ? ((topMid > view.quotedMidX18 ? topMid - view.quotedMidX18 : view.quotedMidX18 - topMid) * 10000n) / view.quotedMidX18 : null;
   const previewDecision = deviation === null ? null : deviation > 50n ? 2 : 1;
@@ -305,7 +370,7 @@ export function LivePosition({
               </div>
               <div>
                 <dt>Book age</dt>
-                <dd>{bookAgeSeconds === null ? "—" : `${bookAgeSeconds}s`}</dd>
+                <dd>{quoteAgeSeconds === null ? "—" : formatAge(quoteAgeSeconds)}</dd>
               </div>
               <div>
                 <dt>Swaps</dt>
