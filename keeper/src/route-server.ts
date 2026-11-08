@@ -1,3 +1,4 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import {
@@ -7,6 +8,7 @@ import {
   type Address,
   type Hex,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { signedDeskQuote } from "./signed-quotes.ts";
 import { RouteBook, type ChainChecks } from "./route-book.ts";
 import {
@@ -16,7 +18,11 @@ import {
   deployment,
   root,
   shortError,
+  readRecoveryQueue,
 } from "./match-runtime.ts";
+import { signedDeskAbi, signedDeskAddress } from "../../apps/web/src/signedDesk.ts";
+import { judgeReadiness, type ReadyFacts } from "./readiness.ts";
+import { allowRate, clientAddress, createGate, createSnapshot } from "./route-guard.ts";
 import { positionAbi, factoryAbi } from "../../apps/web/src/matchAbi.ts";
 import { type Card } from "../../apps/web/src/routeQuote.ts";
 import { elysiumTestnet, rpcUrl } from "./chain.ts";
@@ -236,17 +242,129 @@ const book = new RouteBook(
   sourceAddress,
   checks,
 );
-let queue: Promise<unknown> = Promise.resolve();
-function serial<T>(fn: () => Promise<T>): Promise<T> {
-  const result = queue.then(fn);
-  queue = result.catch(() => {});
-  return result;
-}
+const gate = createGate(8);
+const bookView = createSnapshot(4000, () =>
+  gate(async () => {
+    await book.sync();
+    return { offers: book.data.offers, routes: book.data.routes };
+  }),
+);
+const readinessView = createSnapshot(15000, async () => {
+  const now = Date.now();
+  const facts: ReadyFacts = {
+    chainId: null,
+    signerMatches: null,
+    bookAgeMs: null,
+    indexerLagBlocks: null,
+    executorAgeMs: null,
+    pendingClaims: null,
+    settlementSeen: false,
+    lastSettlement: null,
+    gasWei: null,
+    executorMode: "missing",
+  };
+  try {
+    facts.chainId = await sourceClient.getChainId();
+  } catch {
+    /* leave chain unconfirmed */
+  }
+  try {
+    const key = process.env.SHIFT_QUOTE_KEY as Hex | undefined;
+    if (!key) facts.signerMatches = false;
+    else {
+      const local = privateKeyToAccount(key).address;
+      const onchain = await sourceClient.readContract({
+        address: signedDeskAddress,
+        abi: signedDeskAbi,
+        functionName: "quoteSigner",
+      });
+      facts.signerMatches = local.toLowerCase() === onchain.toLowerCase();
+    }
+  } catch {
+    facts.signerMatches = null;
+  }
+  try {
+    const response = await fetch("https://api.hyperliquid.xyz/info", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "l2Book", coin: "@107" }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const market = (await response.json()) as { time?: number };
+    if (typeof market.time === "number") facts.bookAgeMs = now - market.time;
+  } catch {
+    /* leave the book age unconfirmed */
+  }
+  try {
+    const indexPath = root + "keeper/.match-dest-index.json";
+    if (existsSync(indexPath)) {
+      const saved = JSON.parse(readFileSync(indexPath, "utf8")) as { through?: string };
+      if (saved.through !== undefined) {
+        facts.indexerLagBlocks = (await destClient.getBlockNumber()) - BigInt(saved.through);
+        facts.pendingClaims = readRecoveryQueue().length;
+      }
+    }
+  } catch {
+    facts.indexerLagBlocks = null;
+  }
+  try {
+    const statusPath = root + "keeper/.match-executor.json";
+    if (existsSync(statusPath)) {
+      const status = JSON.parse(readFileSync(statusPath, "utf8")) as {
+        lastLoop?: number;
+        lastSuccess?: number | null;
+        mode?: "live" | "dry-run";
+        address?: Address | null;
+      };
+      if (typeof status.lastLoop === "number") facts.executorAgeMs = now - status.lastLoop;
+      if (status.mode === "live" || status.mode === "dry-run") facts.executorMode = status.mode;
+      facts.settlementSeen = Object.prototype.hasOwnProperty.call(status, "lastSuccess");
+      facts.lastSettlement = typeof status.lastSuccess === "number" ? status.lastSuccess : null;
+      if (facts.executorMode === "live" && status.address)
+        facts.gasWei = await sourceClient.getBalance({ address: status.address });
+    }
+  } catch {
+    facts.executorMode = "missing";
+  }
+  const judged = judgeReadiness(facts);
+  return {
+    ok: true,
+    ready: judged.ready,
+    blocked: judged.blocked,
+    chainId: facts.chainId,
+    source: sourceAddress,
+    signedQuotes: judged.checks.signer,
+    pendingClaims: facts.pendingClaims,
+    lastSettlement: facts.lastSettlement,
+  };
+});
 const origins = (
   process.env.SHIFT_ROUTE_ORIGINS ??
   "http://127.0.0.1:5180,http://localhost:5180,http://127.0.0.1:5181,https://shifthl.xyz,https://www.shifthl.xyz"
 ).split(",");
 const limits = new Map<string, { at: number; n: number }>();
+let headersProbed = false;
+function probeHeaders(req: import("node:http").IncomingMessage) {
+  if (headersProbed) return;
+  headersProbed = true;
+  const sample: Record<string, string> = {};
+  for (const name of ["cf-connecting-ip", "x-forwarded-for", "x-real-ip", "true-client-ip", "x-vercel-forwarded-for"]) {
+    const raw = req.headers[name];
+    if (typeof raw !== "string" || raw === "") continue;
+    const first = raw.split(",")[0].trim();
+    sample[name] = /^(\d{1,3}\.){3}\d{1,3}$/.test(first) ? first.replace(/\d+$/, "x") : "present";
+  }
+  try {
+    writeFileSync(
+      root + "keeper/.header-probe.json",
+      JSON.stringify({ peer: req.socket.remoteAddress ?? null, names: Object.keys(req.headers).sort(), sample }),
+      { mode: 0o600 },
+    );
+  } catch {
+    /* The next request tries again. */
+    headersProbed = false;
+  }
+}
 const server = createServer(async (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Cache-Control", "no-store");
@@ -268,23 +386,37 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify(value));
   };
   try {
+    probeHeaders(req);
     if (origin && !origins.includes(origin)) throw Error("Origin not allowed");
-    const ip = req.socket.remoteAddress ?? "unknown",
-      now = Date.now();
-    const limit = limits.get(ip);
-    if (!limit || now - limit.at > 60000) limits.set(ip, { at: now, n: 1 });
-    else if (++limit.n > 300) {
+    const now = Date.now();
+    const client = clientAddress(
+      req.socket.remoteAddress,
+      req.headers,
+      process.env.SHIFT_TRUSTED_CLIENT_HEADER,
+    );
+    if (!allowRate(limits, "public", now, 300)) {
+      reply(429, { error: "Too many requests; retry shortly" });
+      return;
+    }
+    if (client && !allowRate(limits, "ip:" + client, now, 120)) {
       reply(429, { error: "Too many requests; retry shortly" });
       return;
     }
     if (limits.size > 10000)
       for (const [k, v] of limits) if (now - v.at > 60000) limits.delete(k);
     if (req.url === "/route-api/health") {
+      reply(200, await readinessView());
+      return;
+    }
+    if (req.url === "/route-api/recovery-queue") {
       reply(200, {
-        ok: true,
-        chainId: 99801,
-        source: sourceAddress,
-        signedQuotes: !!process.env.SHIFT_QUOTE_KEY,
+        unparsed: readRecoveryQueue().map((item) => ({
+          fillId: item.fillId,
+          transactionHash: item.transactionHash,
+          blockHash: item.blockHash,
+          block: item.block,
+          reason: item.reason,
+        })),
       });
       return;
     }
@@ -297,11 +429,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method === "GET" && req.url === "/route-api/book") {
-      const data = await serial(async () => {
-        await book.sync();
-        return book.data;
-      });
-      reply(200, data);
+      reply(200, await bookView());
       return;
     }
     if (
@@ -321,23 +449,28 @@ const server = createServer(async (req, res) => {
         return;
       }
     }
-    if (req.url === "/route-api/desk-quote") {
-      reply(200, await signedDeskQuote(JSON.parse(raw), sourceClient));
+    const body = JSON.parse(raw);
+    const wallet = (req.url === "/route-api/desk-quote" ? body.caller : body.auth?.owner)?.toLowerCase();
+    if (wallet && !allowRate(limits, "wallet:" + wallet, now, 30)) {
+      reply(429, { error: "Too many requests; retry shortly" });
       return;
     }
-    const { action, payload, auth, signature } = JSON.parse(raw);
-    const result = await serial(() =>
-      book.mutate(action, payload, auth, signature),
-    );
+    if (req.url === "/route-api/desk-quote") {
+      reply(200, await gate(() => signedDeskQuote(body, sourceClient)));
+      return;
+    }
+    const { action, payload, auth, signature } = body;
+    const result = await gate(() => book.mutate(action, payload, auth, signature));
     reply(200, result);
   } catch (error) {
     const detail = error as { shortMessage?: string; details?: string };
-    console.error(
-      "Route API failure",
-      detail.shortMessage ?? shortError(error),
-      detail.details ?? "",
-    );
-    reply(400, { error: shortError(error) });
+    const message = shortError(error);
+    if (message.includes("busy")) {
+      reply(429, { error: "Route book is busy; retry shortly" });
+      return;
+    }
+    console.error("Route API failure", detail.shortMessage ?? message, detail.details ?? "");
+    reply(400, { error: message });
   }
 });
 server.requestTimeout = 15000;

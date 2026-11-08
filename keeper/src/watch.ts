@@ -149,7 +149,8 @@ async function signedChecks():Promise<Check[]>{
  fetch("https://api.hyperliquid.xyz/info",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:"l2Book",coin:"@107"}),signal:AbortSignal.timeout(8000)})]);
  if(!healthResponse.ok||!marketResponse.ok)throw Error("Signed quote service or market source unavailable");
  const health=await healthResponse.json(),market=await marketResponse.json();
- return [{key:"quote_service",ok:health.ok===true&&health.signedQuotes===true,message:"Shift watch: signed quote service is not enabled"},{key:"market",ok:Number.isFinite(market.time)&&Date.now()-market.time<=15000&&market.time<=Date.now()+1000,message:"Shift watch: HyperCore reference is stale"}];
+ const blocked = Array.isArray(health.blocked) ? health.blocked.join(", ") : "readiness";
+ return [{key:"quote_service",ok:health.ok===true&&health.signedQuotes===true,message:"Shift watch: signed quote service is not enabled"},{key:"ready",ok:health.ready===true,message:`Shift watch: route service is up but not ready: ${blocked}`},{key:"market",ok:Number.isFinite(market.time)&&Date.now()-market.time<=15000&&market.time<=Date.now()+1000,message:"Shift watch: HyperCore reference is stale"}];
 }
 
 async function main() {

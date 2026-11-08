@@ -17,4 +17,20 @@ contract SignedPositionTest is Test {
     function testPullAndScriptedShiftStillWork() public {(SignedPosition.Quote memory q,bytes memory sig)=quote(3,address(this),100e18,81e18);assertEq(uint256(desk.evaluateSigned(q,sig)),uint256(PositionV2.Decision.Pull));(q,sig)=quote(4,address(this),100e18,81e18);desk.requoteSigned(q,sig);desk.setSpotLinked(true);(q,sig)=quote(5,address(this),100e18,81e18);desk.shiftSigned(q,sig);assertEq(desk.transitBase(),25e18);desk.advanceScripted();desk.advanceScripted();desk.returnScripted();assertEq(desk.elysiumBase(),100e18);}
     function testUnsignedLegacyEntrypointsRejected() public {vm.expectRevert(SignedPosition.SignedQuoteRequired.selector);desk.swap(1e18,80e6);vm.expectRevert(SignedPosition.SignedQuoteRequired.selector);desk.evaluate();}
     function testOutsideBandStillRejectsSwap() public {(SignedPosition.Quote memory q,bytes memory sig)=quote(1,buyer,1e18,81e18);vm.prank(buyer);vm.expectRevert(PositionV2.OutsideBand.selector);desk.swapSigned(1e18,81e6,q,sig);assertFalse(desk.usedQuotes(desk.quoteDigest(q)));}
+    function testSetQuoteSignerBumpsEpochAndKillsOldQuote() public {
+        (SignedPosition.Quote memory q,bytes memory sig)=quote(1,buyer,1e18,80e18);
+        uint256 next=99;
+        desk.setQuoteSigner(vm.addr(next));
+        assertEq(desk.signerEpoch(),1);
+        assertEq(desk.quoteSigner(),vm.addr(next));
+        vm.prank(buyer);
+        vm.expectRevert(SignedPosition.InvalidSignedQuote.selector);
+        desk.swapSigned(1e18,80e6,q,sig);
+        q.epoch=desk.signerEpoch();
+        q.nonce=bytes32(uint256(500));
+        (uint8 v,bytes32 r,bytes32 s)=vm.sign(next,desk.quoteDigest(q));
+        vm.prank(buyer);
+        desk.swapSigned(1e18,80e6,q,abi.encodePacked(r,s,v));
+        assertEq(base.balanceOf(buyer),1e18);
+    }
 }

@@ -22,6 +22,7 @@ import {
   decodeDeskQuote,
   type DeskQuote,
 } from "./signedDesk";
+import { impliedUsdc, nextSwapStep } from "./deskSwap";
 const client = createPublicClient({
   chain: elysiumTestnet,
   transport: http(rpcUrl, { batch: { wait: 40 }, retryDelay: 1500 }),
@@ -272,22 +273,31 @@ export function SignedDesk({ account }: { account: Address | null }) {
             }
             onClick={() =>
               void run(async () => {
-                if (!quote) throw Error("Request a quote first");
-                const max = parseUnits(maximum, 6);
-                await allowance(deployments.quote, max);
-                if (
-                  BigInt(Math.floor(Date.now() / 1000)) > quote.quote.validUntil
-                )
+                const cap = parseUnits(maximum, 6);
+                await allowance(deployments.quote, cap);
+                const fresh = await fetchQuote(1);
+                const payment = impliedUsdc(fresh.quote.size, fresh.quote.bidX18, fresh.quote.askX18);
+                const step = nextSwapStep({
+                  allowance: cap,
+                  cap,
+                  receipt: "success",
+                  quote: { payment, validUntil: Number(fresh.quote.validUntil) },
+                  now: Math.floor(Date.now() / 1000),
+                });
+                if (step.action === "review") {
+                  setQuote(fresh);
                   throw Error(
-                    "Quote expired during approval. Request a fresh quote.",
+                    `The fresh quote needs ${formatUnits(step.payment, 6)} mUSDC, above your maximum of ${maximum}. Raise the maximum and confirm again.`,
                   );
+                }
+                if (step.action !== "swap") throw Error("The quote expired. Request a fresh quote and try again.");
                 const w = await wallet();
                 await confirm(
                   await w.writeContract({
                     address: signedDeskAddress,
                     abi: signedDeskAbi,
                     functionName: "swapSigned",
-                    args: [quote.quote.size, max, quote.quote, quote.signature],
+                    args: [fresh.quote.size, cap, fresh.quote, fresh.signature],
                   }),
                 );
               })

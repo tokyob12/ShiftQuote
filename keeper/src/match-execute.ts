@@ -1,4 +1,5 @@
-import { createWalletClient, http, type Hex } from "viem";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { elysiumTestnet, rpcUrl } from "./chain.ts";
 import {
@@ -8,6 +9,8 @@ import {
   sourceAbi,
   shortError,
   readClaims,
+  recoveryQueue,
+  root,
 } from "./match-runtime.ts";
 
 export type FillReceipt = {
@@ -18,6 +21,25 @@ export type FillReceipt = {
 export function pendingSettles(fills: FillReceipt[]) {
   return fills.filter((f) => f.claimed && !f.settled).map((f) => f.fillId);
 }
+const executorStatusPath = root + "keeper/.match-executor.json";
+function writeExecutorStatus(patch: { pending?: number; lastSuccess?: number; mode: "live" | "dry-run"; address: Address | null }) {
+  let previous: { lastSuccess?: number | null } = {};
+  if (existsSync(executorStatusPath)) {
+    try {
+      previous = JSON.parse(readFileSync(executorStatusPath, "utf8"));
+    } catch {
+      previous = {};
+    }
+  }
+  writeFileSync(
+    executorStatusPath,
+    JSON.stringify({
+      lastSuccess: previous.lastSuccess ?? null,
+      ...patch,
+      lastLoop: Date.now(),
+    }),
+  );
+}
 export async function settleOnce() {
   const key = process.env.SHIFT_RELAYER_KEY as Hex | undefined;
   const wallet = key
@@ -27,10 +49,20 @@ export async function settleOnce() {
         transport: http(rpcUrl),
       })
     : null;
+  const mode = wallet ? "live" : "dry-run";
+  const address = wallet?.account.address ?? null;
+  writeExecutorStatus({ mode, address });
   console.log("Reading source fills");
   const rows = await readFills();
   console.log("Indexed fills",rows.length);
   const claims=await readClaims();
+  const pending = rows.filter((row) => Number(row.fill.status) === 1 && Number(row.lock[6]) === 2).length;
+  writeExecutorStatus({ mode, address, pending });
+  for (const item of recoveryQueue()) {
+    const row = rows.find((candidate) => candidate.id.toLowerCase() === item.fillId.toLowerCase());
+    if (row && Number(row.fill.status) === 1)
+      console.error("manual recovery", item.fillId, item.reason, item.transactionHash);
+  }
   for (const row of rows) {
     if(row.fill.status===2 && wallet){
       for(const beneficiary of [row.fill.depositor,wallet.account.address]){
@@ -69,6 +101,7 @@ export async function settleOnce() {
       const hash = await wallet.writeContract(request.request);
       const receipt = await sourceClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("settle reverted");
+      writeExecutorStatus({ mode, address, pending, lastSuccess: Date.now() });
       console.log("settled", row.id, hash);
       for (const beneficiary of [row.fill.depositor, wallet.account.address]) {
         const credit = await sourceClient.readContract({

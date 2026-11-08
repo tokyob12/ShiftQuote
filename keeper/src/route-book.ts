@@ -25,9 +25,12 @@ export interface ChainChecks {
   card(route: Route, card: Card, signed: boolean): Promise<void>;
 }
 const terminal = new Set(["settled", "refunded", "expired"]);
+const ACTIVE_OFFER_CAP = 5000;
 export class RouteBook {
   data: Book = { offers: [], routes: [] };
+  archive: Offer[] = [];
   used: string[] = [];
+  usedExpiry: Record<string, number> = {};
   constructor(
     readonly file: string,
     readonly source: Address,
@@ -37,17 +40,42 @@ export class RouteBook {
     if (existsSync(file)) {
       const saved = JSON.parse(readFileSync(file, "utf8"));
       this.data = saved.data;
-      this.used = saved.used;
+      this.archive = saved.archive ?? [];
+      this.used = saved.used ?? [];
+      this.usedExpiry = saved.usedExpiry ?? {};
     }
   }
   save() {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 });
     writeFileSync(
       this.file + ".tmp",
-      JSON.stringify({ data: this.data, used: this.used }),
+      JSON.stringify({
+        data: this.data,
+        archive: this.archive,
+        used: this.used,
+        usedExpiry: this.usedExpiry,
+      }),
       { mode: 0o600 },
     );
     renameSync(this.file + ".tmp", this.file);
+  }
+  private pruneUsed() {
+    const now = this.clock();
+    this.used = this.used.filter((nonce) => {
+      const expiry = this.usedExpiry[nonce];
+      if (expiry === undefined || expiry >= now) return true;
+      delete this.usedExpiry[nonce];
+      return false;
+    });
+  }
+  private archiveExpired() {
+    const now = this.clock();
+    const active: Offer[] = [];
+    for (const offer of this.data.offers) {
+      if (offer.expires > now) active.push(offer);
+      else this.archive.push(offer);
+    }
+    this.data.offers = active;
   }
   async authorize(
     action: string,
@@ -64,6 +92,7 @@ export class RouteBook {
     )
       throw Error("Expired or invalid authorization");
     const nonce = auth.owner.toLowerCase() + ":" + auth.nonce;
+    this.pruneUsed();
     if (this.used.includes(nonce)) throw Error("Authorization already used");
     if (
       !(await verifyMessage({
@@ -76,6 +105,7 @@ export class RouteBook {
     return nonce;
   }
   async sync() {
+    this.archiveExpired();
     for (const route of this.data.routes) {
       if (terminal.has(route.state)) continue;
       if (route.card) {
@@ -98,7 +128,7 @@ export class RouteBook {
     const now = this.clock();
     let result: unknown;
     if (action === "offer") {
-      if (this.data.offers.length >= 5000)
+      if (this.data.offers.filter((offer) => offer.expires > now).length >= ACTIVE_OFFER_CAP)
         throw Error("Order book capacity reached; contact operator");
       if (
         !["lp", "deposit"].includes(payload.kind) ||
@@ -284,7 +314,9 @@ export class RouteBook {
       offer.expires = now;
       result = { ok: true };
     } else throw Error("Unknown action");
+    this.archiveExpired();
     this.used.push(nonce);
+    this.usedExpiry[nonce] = auth.expires;
     this.save();
     return result;
   }

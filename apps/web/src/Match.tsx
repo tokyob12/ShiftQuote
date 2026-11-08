@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createPublicClient,
   createWalletClient,
@@ -9,6 +9,7 @@ import {
   formatUnits,
   http,
   keccak256,
+  parseAbiItem,
   parseEther,
   parseUnits,
   verifyTypedData,
@@ -17,6 +18,7 @@ import {
   type Hex,
   type PublicClient,
 } from "viem";
+import { decideDestination, type DestDecision, type LockSnap } from "./claimConfirm";
 import { RouteMarket } from "./RouteMarket";
 import { routeMessage, type Route, type Card, type Auth } from "./routeQuote";
 import { faucetAbi } from "./abi";
@@ -197,6 +199,9 @@ export function Match() {
   const [manualQuote,setManualQuote]=useState(false);
   const [connectedAddress,setConnectedAddress]=useState<Address|null>(null);
   const [progress,setProgress]=useState({source:0,dest:0,credit:0n});
+  const [destConfirm,setDestConfirm]=useState<DestDecision>({kind:"unconfirmed",reason:"HyperEVM read was not confirmed"});
+  const [manualClaim,setManualClaim]=useState<{fillId:string;transactionHash:string;blockHash:string;block:string;reason:string}|null>(null);
+  const claimAnchor=useRef<{fillId:string;blockNumber:bigint;blockHash:Hex}|null>(null);
   const [marketStatus, setMarketStatus] = useState("");
   const [limitText, setLimitText] = useState("0.05");
   const [available, setAvailable] = useState<bigint | null>(null);
@@ -318,6 +323,38 @@ export function Match() {
     }
   },[path]);
 
+  async function readDestination(id:Hex):Promise<DestDecision>{
+    const card=readStored();
+    if(!card?.input?.recipient||!card.input.whype||!card.input.secretHash)return {kind:"unconfirmed",reason:"HyperEVM read was not confirmed"};
+    const snap=(row:readonly [Address,Address,bigint,bigint,Hex,bigint,number]):LockSnap=>({recipient:row[1],payment:row[2],secretHash:row[4],status:Number(row[6])});
+    let first:LockSnap|null=null,second:LockSnap|null=null,tip:bigint|null=null;
+    try{
+      first=snap(await hyper.readContract({address:matchDeployments.destMatch,abi:destAbi,functionName:"locks",args:[id]}));
+      second=snap(await hyper.readContract({address:matchDeployments.destMatch,abi:destAbi,functionName:"locks",args:[id]}));
+      tip=await hyper.getBlockNumber();
+    }catch{return {kind:"unconfirmed",reason:"HyperEVM read was not confirmed"};}
+    let claim:{blockNumber:bigint;blockHash:Hex;canonicalHash:Hex|null}|null=null;
+    if(first.status===2&&second.status===2){
+      try{
+        const cached=claimAnchor.current?.fillId===id?claimAnchor.current:null;
+        let blockNumber=cached?.blockNumber??null;
+        let blockHash=cached?.blockHash??null;
+        if(blockNumber===null){
+          const safe=tip>2n?tip-2n:0n;
+          const from=safe>50_000n?safe-50_000n:0n;
+          const logs=await hyper.getLogs({address:matchDeployments.destMatch,event:parseAbiItem("event Claimed(bytes32 indexed fillId, address indexed recipient, uint256 payment)"),args:{fillId:id},fromBlock:from,toBlock:safe});
+          const log=logs[logs.length-1];
+          if(log?.blockNumber!=null&&log.blockHash){blockNumber=log.blockNumber;blockHash=log.blockHash;claimAnchor.current={fillId:id,blockNumber,blockHash};}
+        }
+        if(blockNumber!==null&&blockHash){
+          const block=await hyper.getBlock({blockNumber});
+          claim={blockNumber,blockHash,canonicalHash:block.hash};
+        }
+      }catch{claim=null;}
+    }
+    return decideDestination({expectedRecipient:card.input.recipient,expectedPayment:quoteMatch(BigInt(card.input.whype),BigInt(card.input.gasElysium||"0"),BigInt(card.input.gasHyper||"0")).payment,expectedSecretHash:card.input.secretHash as Hex,first,second,tip,claim});
+  }
+
   useEffect(()=>{
     if(!/^0x[0-9a-fA-F]{64}$/.test(fillId))return;
     let active=true;
@@ -328,12 +365,28 @@ export function Match() {
           hyper.readContract({address:matchDeployments.destMatch,abi:destAbi,functionName:"locks",args:[fillId as Hex]})
         ]);
         const credit=await hyper.readContract({address:matchDeployments.destMatch,abi:destAbi,functionName:"credit",args:[lock[1]]});
-        if(active)setProgress({source:source.status,dest:lock[6],credit});
-      }catch{ /* allow retry while either testnet RPC is temporarily unavailable */ }
+        const decision=await readDestination(fillId as Hex);
+        if(active){setProgress({source:source.status,dest:lock[6],credit});setDestConfirm(decision);}
+      }catch{if(active)setDestConfirm({kind:"unconfirmed",reason:"HyperEVM read was not confirmed"});}
     };
     void refresh();const timer=setInterval(()=>void refresh(),5000);
     return()=>{active=false;clearInterval(timer);};
   },[fillId,status]);
+
+  useEffect(()=>{
+    if(panel!=="recovery"||!/^0x[0-9a-fA-F]{64}$/.test(fillId)){setManualClaim(null);return;}
+    let active=true;
+    const load=async()=>{
+      try{
+        const response=await fetch("/route-api/recovery-queue");
+        const body=await response.json() as {unparsed?:{fillId:string;transactionHash:string;blockHash:string;block:string;reason:string}[]};
+        const row=body.unparsed?.find(item=>item.fillId.toLowerCase()===fillId.toLowerCase())??null;
+        if(active)setManualClaim(row);
+      }catch{if(active)setManualClaim(null);}
+    };
+    void load();const timer=setInterval(()=>void load(),15000);
+    return()=>{active=false;clearInterval(timer);};
+  },[panel,fillId]);
 
   useEffect(()=>{const timer=setInterval(()=>setNow(Math.floor(Date.now()/1000)),1000);return()=>clearInterval(timer);},[]);
 
@@ -1000,9 +1053,13 @@ export function Match() {
       setStatus("Paste the fill id.");
       return;
     }
+    const decision=await readDestination(fillId as Hex);
+    setDestConfirm(decision);
+    if(kind==="settle"&&decision.kind!=="claimed")throw new Error(decision.kind==="unconfirmed"?decision.reason:"The HyperEVM claim is not confirmed for this fill.");
     if(kind==="refund"){
       const row=await elysium.readContract({address:matchDeployments.sourceMatch,abi:sourceAbi,functionName:"getFill",args:[fillId as Hex]});
       if((await elysium.getBlock()).timestamp<row.refundAfter)throw new Error("The Elysium refund deadline has not arrived.");
+      if(decision.kind!=="locked")throw new Error(decision.kind==="claimed"?"A confirmed HyperEVM payment cannot be undone by an Elysium refund.":decision.kind==="unconfirmed"?decision.reason:"The HyperEVM lock is not confirmed.");
     }
     setStatus(kind === "settle" ? "Settling…" : "Refunding…");
     const hash = await client.writeContract({
@@ -1133,9 +1190,10 @@ export function Match() {
 
               {panel==="recovery"?<>
                 {historyCards.length?<label>Recent requests<select value={fillId} onChange={event=>{const card=historyCards.find(item=>item.fillId===event.target.value);if(card)rememberQuote(JSON.stringify(card));}}><option value="">Choose a request</option>{historyCards.map(card=><option key={card.fillId} value={card.fillId}>{card.input?.usdc?formatUnits(BigInt(card.input.usdc),6):"—"} mUSDC · {card.fillId?.slice(0,12)}…</option>)}</select></label>:null}
-                <div className="match-state-list"><div><span>Elysium</span><strong>{["Awaiting funding","USDC + WHYPE reserved","Settled","Original assets refunded"][progress.source]}</strong></div><div><span>HyperEVM</span><strong>{["Awaiting deposit","HYPE locked","Payment claimed","Depositor refunded"][progress.dest]}</strong></div></div>
+                <div className="match-state-list"><div><span>Elysium</span><strong>{["Awaiting funding","USDC + WHYPE reserved","Settled","Original assets refunded"][progress.source]}</strong></div><div><span>HyperEVM</span><strong>{/^0x[0-9a-fA-F]{64}$/.test(fillId)&&destConfirm.kind==="unconfirmed"?"HyperEVM read was not confirmed":["Awaiting deposit","HYPE locked","Payment claimed","Depositor refunded"][progress.dest]}</strong></div></div>
                 <p className="match-explain">Refunds return assets after their signed deadlines. A claimed HyperEVM payment requires the Elysium leg to settle within its time window.</p>
-                <div className="match-actions"><button className="btn" type="button" disabled={progress.source!==1} onClick={()=>void run(()=>settleOrRefund("settle"))}>Finish Elysium settlement</button><button className="btn" type="button" disabled={progress.source!==1||now<Number(readStored()?.input?.refundAfter??Infinity)} onClick={()=>void run(()=>settleOrRefund("refund"))}>Refund Elysium assets</button><button className="btn" type="button" disabled={progress.dest!==1||now<Number(readStored()?.input?.claimBefore??Infinity)} onClick={()=>void run(()=>hyperMove("refund"))}>Refund HyperEVM lock</button><button className="btn" type="button" onClick={()=>void run(()=>hyperMove("take"))}>Withdraw HyperEVM credit</button><button className="btn" type="button" onClick={()=>void run(collectSourceCredit)}>Collect Elysium HYPE</button></div>
+                {manualClaim?<p className="match-explain">This claim needs manual settlement: {manualClaim.reason}. Transaction {manualClaim.transactionHash}. Block {manualClaim.blockHash}. Finish it here with your private recovery secret after HyperEVM confirms the claim.</p>:null}
+                <div className="match-actions"><button className="btn" type="button" disabled={progress.source!==1||destConfirm.kind!=="claimed"} onClick={()=>void run(()=>settleOrRefund("settle"))}>Finish Elysium settlement</button><button className="btn" type="button" disabled={progress.source!==1||destConfirm.kind!=="locked"||now<Number(readStored()?.input?.refundAfter??Infinity)} onClick={()=>void run(()=>settleOrRefund("refund"))}>Refund Elysium assets</button><button className="btn" type="button" disabled={progress.dest!==1||now<Number(readStored()?.input?.claimBefore??Infinity)} onClick={()=>void run(()=>hyperMove("refund"))}>Refund HyperEVM lock</button><button className="btn" type="button" onClick={()=>void run(()=>hyperMove("take"))}>Withdraw HyperEVM credit</button><button className="btn" type="button" onClick={()=>void run(collectSourceCredit)}>Collect Elysium HYPE</button></div>
               </>:null}
               {progress.source===2||progress.source===3?<button type="button" className="btn" onClick={()=>{localStorage.removeItem("shift-match-quote");setQuoteSig("");setFillId("");setQuoteCard("");setSecret("");setProgress({source:0,dest:0,credit:0n});setStatus("Ready for a new trade. Previous public requests remain in history.");}}>Start a new trade</button>:null}
               <p className="match-status" role="status" aria-live="polite">{status}</p>

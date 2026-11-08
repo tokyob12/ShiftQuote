@@ -4,7 +4,8 @@ import { erc20Abi, positionV2Abi } from "./abi";
 import { elysiumTestnet, rpcUrl } from "./chain";
 import { deployments } from "./deployments";
 import { Ladder, Route, Ticker } from "./DeskParts";
-import { decodeDeskQuote, signedDeskAbi, signedDeskAddress, signedDeskTypes } from "./signedDesk";
+import { decodeDeskQuote, signedDeskAbi, signedDeskAddress, signedDeskTypes, type DeskQuote } from "./signedDesk";
+import { impliedUsdc, nextSwapStep } from "./deskSwap";
 
 const LOCATIONS = ["Uninitialized", "Quoted", "Pulled", "InTransit", "OnCoreIdle", "Resting"] as const;
 const DECISIONS = ["None", "Stay", "Pull", "Shift"] as const;
@@ -84,6 +85,7 @@ export function LivePosition({
   const [bookError, setBookError] = useState("");
   const [parkedBase, setParkedBase] = useState<bigint | null>(null);
   const [swapSize, setSwapSize] = useState("0.01");
+  const [swapReview, setSwapReview] = useState<{ payment: bigint; quote: DeskQuote; signature: Hex } | null>(null);
   const [withdrawBase, setWithdrawBase] = useState("0.1");
   const [withdrawQuote, setWithdrawQuote] = useState("0");
 
@@ -237,7 +239,11 @@ export function LivePosition({
         chain: elysiumTestnet,
       } as never);
       onStatus(`Waiting for ${functionName}…`);
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") {
+        onStatus(`${functionName} reverted.`);
+        return false;
+      }
       onStatus(`${functionName} confirmed.`);
       await refresh();
       await loadQuoteTime();
@@ -306,22 +312,60 @@ export function LivePosition({
     }
   }
 
-  async function approveAndSwap() {
+  async function approveAndSwap(agreedCap?: bigint) {
     if (!view || !account) return;
     const baseOut = parseUnits(swapSize, 18);
-    const usdcIn = (baseOut * view.quotedMidX18) / 10n ** 30n;
-    const maxUsdcIn = (usdcIn * 10050n) / 10000n + 1n;
-    onStatus("Requesting a signed quote…");
+    const shown = (baseOut * view.quotedMidX18) / 10n ** 30n;
+    const cap = agreedCap ?? (shown * 10050n) / 10000n + 1n;
+    onStatus("Checking the mUSDC allowance…");
     try {
-      const { quote, signature } = await deskQuote(1, baseOut);
-      const allowance = await publicClient.readContract({
+      let allowance = await publicClient.readContract({
         address: deployments.quote,
         abi: erc20Abi,
         functionName: "allowance",
         args: [account, signedDeskAddress],
       });
-      if (allowance < maxUsdcIn && !(await write("approve", [signedDeskAddress, maxUsdcIn], deployments.quote, erc20Abi))) return;
-      await write("swapSigned", [baseOut, maxUsdcIn, quote, signature], signedDeskAddress, signedDeskAbi);
+      let receipt: "none" | "success" | "reverted" = allowance >= cap ? "success" : "none";
+      if (allowance < cap) {
+        if (!(await write("approve", [signedDeskAddress, cap], deployments.quote, erc20Abi))) return;
+        allowance = cap;
+        receipt = "success";
+      }
+      let quoted = await deskQuote(1, baseOut);
+      let step = nextSwapStep({
+        allowance,
+        cap,
+        receipt,
+        quote: {
+          payment: impliedUsdc(baseOut, quoted.quote.bidX18, quoted.quote.askX18),
+          validUntil: Number(quoted.quote.validUntil),
+        },
+        now: Math.floor(Date.now() / 1000),
+      });
+      if (step.action === "quote") {
+        quoted = await deskQuote(1, baseOut);
+        step = nextSwapStep({
+          allowance,
+          cap,
+          receipt,
+          quote: {
+            payment: impliedUsdc(baseOut, quoted.quote.bidX18, quoted.quote.askX18),
+            validUntil: Number(quoted.quote.validUntil),
+          },
+          now: Math.floor(Date.now() / 1000),
+        });
+      }
+      if (step.action === "review") {
+        setSwapReview({ payment: step.payment, quote: quoted.quote, signature: quoted.signature });
+        onStatus(`The fresh quote needs ${formatUnits(step.payment, 6)} mUSDC. Your maximum stays ${formatUnits(cap, 6)}. Confirm the new price to continue.`);
+        return;
+      }
+      if (step.action !== "swap") {
+        onStatus("reason" in step ? step.reason : "Request a fresh quote and try the swap again.");
+        return;
+      }
+      setSwapReview(null);
+      await write("swapSigned", [baseOut, cap, quoted.quote, quoted.signature], signedDeskAddress, signedDeskAbi);
     } catch (caught) {
       onStatus(caught instanceof Error ? caught.message : "Signed quote failed");
     }
@@ -369,8 +413,16 @@ export function LivePosition({
                 </dd>
               </div>
               <div>
-                <dt>Book age</dt>
+                <dt>Stored mid</dt>
                 <dd>{quoteAgeSeconds === null ? "—" : formatAge(quoteAgeSeconds)}</dd>
+              </div>
+              <div>
+                <dt>Market age</dt>
+                <dd>{ladderAgeSeconds === null ? "—" : formatAge(ladderAgeSeconds)}</dd>
+              </div>
+              <div>
+                <dt>Signature</dt>
+                <dd>{swapReview ? formatAge(Math.max(0, Number(swapReview.quote.validUntil) - nowSeconds)) : "—"}</dd>
               </div>
               <div>
                 <dt>Swaps</dt>
@@ -427,6 +479,11 @@ export function LivePosition({
               >
                 Swap
               </button>
+              {swapReview && (
+                <button className="primary" type="button" disabled={!account} onClick={() => void approveAndSwap(swapReview.payment)}>
+                  Confirm {formatUnits(swapReview.payment, 6)} mUSDC
+                </button>
+              )}
             </div>
             <p className="hint">
               {!view.swapsOpen
